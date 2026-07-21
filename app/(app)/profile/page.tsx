@@ -1,26 +1,19 @@
 import Link from 'next/link'
 import { Settings2 } from 'lucide-react'
-import { requireAccount, getMembers, getMyAccounts } from '@/lib/data'
+import { requireAccount, getMembers } from '@/lib/data'
 import { PageHeader } from '@/components/page-header'
-import { PasswordForm, ProfileForm } from '@/components/profile-form'
+import { ProfileForm } from '@/components/profile-form'
 import { InviteCard } from '@/components/invite-card'
 import { JoinCodeForm } from '@/components/join-code-form'
-import { AccountSwitcher } from '@/components/account-switcher'
-import { LeaveAccountPermanentlyButton } from '@/components/leave-account-permanently-button'
 import { RemovePartnerButton } from '@/components/remove-partner-button'
-import { SignOutButton } from '@/components/sign-out-button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PushButton } from '@/components/push-button'
 import { initials } from '@/lib/format'
 
 export default async function ProfilePage() {
   const { profile, account, user } = await requireAccount()
-  const [members, myAccounts] = await Promise.all([
-    getMembers(account.id),
-    getMyAccounts(),
-  ])
+  const members = await getMembers(account.id)
   const partner = members.find((m) => m.id !== user.id)
   const isCreator = account.created_by === user.id
 
@@ -30,7 +23,7 @@ export default async function ProfilePage() {
         title="Perfil"
         action={
           <Link
-            href="/profile"
+            href="/settings"
             className="flex items-center gap-1.5 pt-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <Settings2 className="h-4 w-4" aria-hidden />
@@ -59,33 +52,6 @@ export default async function ProfilePage() {
       </section>
 
       <section className="px-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-400 delay-100 fill-mode-both">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Alterar senha</CardTitle></CardHeader>
-          <CardContent>
-            <PasswordForm />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="px-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-400 delay-125 fill-mode-both">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">
-              {myAccounts.length > 1 ? 'Trocar de orçamento' : 'Seus orçamentos'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground">
-              {myAccounts.length > 1
-                ? `Você faz parte de ${myAccounts.length} orçamentos. Trocar não tira você de nenhum deles — é só qual você está vendo agora.`
-                : 'Você pode criar outro orçamento a qualquer momento e trocar entre eles.'}
-            </p>
-            <AccountSwitcher accounts={myAccounts} />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="px-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-400 delay-150 fill-mode-both">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
@@ -117,28 +83,8 @@ export default async function ProfilePage() {
                 </Tabs>
               </>
             )}
-
-            <div className="mt-1 border-t border-border pt-3">
-              <p className="text-sm font-medium mb-2">Notificações</p>
-              <PushButton />
-            </div>
-
-            {/* Discreto de propósito: ação irreversível, separada de
-                "trocar de orçamento" (acima, reversível) e de "sair da
-                conta" (abaixo, é só logout). */}
-            <div className="flex justify-center border-t border-border pt-3">
-              <LeaveAccountPermanentlyButton
-                accountId={account.id}
-                accountName={account.name}
-                hasPartner={Boolean(partner)}
-              />
-            </div>
           </CardContent>
         </Card>
-      </section>
-
-      <section className="px-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-400 delay-200 fill-mode-both">
-        <SignOutButton />
       </section>
     </div>
   )

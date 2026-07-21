@@ -30,6 +30,11 @@ export function computeTotals(txs: TransactionWithMeta[]): Totals {
  * NÃO entram aqui — elas só afetam o saldo quando a fatura é paga, e nesse
  * momento a própria transação de pagamento (com card_id nulo) já cobre o
  * valor. 'neutral' nunca afetou o saldo e continua de fora.
+ *
+ * affects_balance = false marca uma transação que não deve mexer no saldo
+ * mesmo sendo do tipo 'expense' — hoje só acontece quando o pagamento de
+ * fatura é feito escolhendo "não descontar do saldo" (dinheiro que não
+ * passou pela conta compartilhada).
  */
 export function computeAccountBalance(
   initialBalance: number,
@@ -38,6 +43,7 @@ export function computeAccountBalance(
   return (
     Number(initialBalance) +
     txs.reduce((acc, t) => {
+      if (t.affects_balance === false) return acc
       if (t.type === 'income') return acc + Number(t.amount)
       if (t.type === 'expense' && !t.card_id) return acc - Number(t.amount)
       return acc
@@ -114,15 +120,25 @@ export function monthlySeries(
 /**
  * Faturas em aberto (ainda não pagas) de cada cartão, agrupadas por
  * competência. Cada compra no cartão é agrupada pela competência que ela
- * ocupa (calculada a partir do dia de fechamento); competências que já
- * têm um registro em card_invoice_payments são excluídas.
+ * ocupa (calculada a partir do dia de fechamento).
+ *
+ * Pagar uma fatura não "trava" a competência para sempre: só exclui as
+ * compras que já existiam no momento do pagamento (created_at <= paid_at
+ * daquele pagamento). Lançamentos novos na mesma competência, feitos
+ * depois do pagamento, continuam entrando aqui e formam uma fatura em
+ * aberto (o valor ainda não pago) — antes eles eram descartados por
+ * completo assim que a competência tinha qualquer pagamento registrado,
+ * fazendo esses lançamentos sumirem sem nunca contar em fatura nenhuma.
  */
 export function openInvoicesByCard(
   cards: Card[],
   txs: TransactionWithMeta[],
   payments: CardInvoicePayment[],
 ): CardInvoice[] {
-  const paidKeys = new Set(payments.map((p) => `${p.card_id}:${p.competencia}`))
+  const paidAt = new Map<string, number>()
+  for (const p of payments) {
+    paidAt.set(`${p.card_id}:${p.competencia}`, new Date(p.paid_at).getTime())
+  }
   const totals = new Map<string, number>()
 
   for (const t of txs) {
@@ -131,7 +147,10 @@ export function openInvoicesByCard(
     if (!card) continue
     const competencia = invoiceCompetencia(t.date, card.closing_day)
     const key = `${card.id}:${competencia}`
-    if (paidKeys.has(key)) continue
+    const paidTimestamp = paidAt.get(key)
+    if (paidTimestamp !== undefined && new Date(t.created_at).getTime() <= paidTimestamp) {
+      continue // já foi coberta por um pagamento anterior dessa competência
+    }
     totals.set(key, (totals.get(key) ?? 0) + Number(t.amount))
   }
 

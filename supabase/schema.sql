@@ -144,6 +144,12 @@ create table if not exists public.transactions (
 --   como pagamento de fatura).
 alter table public.transactions add column if not exists card_id uuid references public.cards (id) on delete set null;
 alter table public.transactions add column if not exists is_invoice_payment boolean not null default false;
+-- affects_balance = false: transação não desconta do saldo em conta mesmo
+-- sendo 'expense' (ver computeAccountBalance em lib/summary.ts). Hoje só é
+-- usado no pagamento de fatura quando o usuário escolhe "não descontar do
+-- saldo" (ver pay_card_invoice abaixo). Todas as transações existentes e
+-- futuras continuam com o padrão (true) a menos que explicitamente marcadas.
+alter table public.transactions add column if not exists affects_balance boolean not null default true;
 
 -- Migração para instalações que já tinham a tabela `transactions` criada com
 -- a constraint antiga (só 'income'/'expense'): sem isto, qualquer tentativa
@@ -837,11 +843,22 @@ $$;
 
 -- Paga a fatura de um cartão para uma competência ('YYYY-MM'): soma todas
 -- as compras daquele cartão que caem nessa competência, gera UMA transação
--- de despesa (is_invoice_payment = true, card_id = null) no valor total —
--- essa é a única coisa que efetivamente sai do saldo em conta — e marca a
--- competência como paga em card_invoice_payments. As compras individuais do
--- cartão nunca são alteradas; elas continuam existindo só para compor o
--- histórico e o total da fatura.
+-- de despesa (is_invoice_payment = true, card_id = null) no valor da
+-- DIFERENÇA ainda não paga — essa é a única coisa que efetivamente sai do
+-- saldo em conta — e atualiza (upsert) o registro da competência em
+-- card_invoice_payments. As compras individuais do cartão nunca são
+-- alteradas; elas continuam existindo só para compor o histórico e o total
+-- da fatura.
+--
+-- IMPORTANTE: pagar uma fatura NÃO bloqueia novos lançamentos na mesma
+-- competência. Se, depois de paga, entrarem novas compras que ainda caem
+-- nesse mesmo ciclo (data <= dia de fechamento), elas formam uma NOVA
+-- fatura em aberto (o valor excedente/"top-up") — e podem ser pagas de
+-- novo, o que gera apenas a diferença como débito e atualiza o valor total
+-- já pago daquela competência. Antes essa diferença era simplesmente
+-- ignorada (a competência já constava como "paga" e qualquer transação
+-- dali era descartada do cálculo), fazendo os novos lançamentos somem sem
+-- nunca contar em fatura nenhuma — esse é o bug corrigido aqui.
 drop function if exists public.pay_card_invoice(uuid, text) cascade;
 drop function if exists public.pay_card_invoice(uuid, text, date) cascade;
 
@@ -854,17 +871,36 @@ language plpgsql
 security definer
 set search_path = public
 as $$
-declare
-  v_date date := current_date;
 begin
-  return public.pay_card_invoice(p_card_id, p_competencia, v_date);
+  return public.pay_card_invoice(p_card_id, p_competencia, current_date, true);
 end;
 $$;
 
 create or replace function public.pay_card_invoice(
   p_card_id uuid,
   p_competencia text,
-  p_date date default current_date
+  p_date date
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return public.pay_card_invoice(p_card_id, p_competencia, p_date, true);
+end;
+$$;
+
+-- p_affects_balance: true (padrão) gera a saída normalmente, descontando
+-- do saldo em conta. false marca a fatura como paga e registra a transação
+-- do mesmo jeito (para aparecer no histórico e não contar de novo como
+-- gasto por categoria), mas ela NÃO desconta do saldo — para quando o
+-- pagamento foi feito com dinheiro que não passou pela conta compartilhada.
+create or replace function public.pay_card_invoice(
+  p_card_id uuid,
+  p_competencia text,
+  p_date date,
+  p_affects_balance boolean
 )
 returns uuid
 language plpgsql
@@ -875,7 +911,9 @@ declare
   v_uid uuid := auth.uid();
   v_account_id uuid;
   v_card public.cards%rowtype;
-  v_amount numeric(14,2);
+  v_already_paid numeric(14,2);
+  v_total numeric(14,2);
+  v_delta numeric(14,2);
   v_tx_id uuid;
 begin
   if v_uid is null then
@@ -896,35 +934,47 @@ begin
     raise exception 'Competência inválida.';
   end if;
 
-  if exists (
-    select 1 from public.card_invoice_payments
-    where card_id = p_card_id and competencia = p_competencia
-  ) then
-    raise exception 'Esta fatura já foi paga.';
-  end if;
+  -- Quanto já foi pago anteriormente nessa competência (0 se for a
+  -- primeira vez que essa fatura é paga).
+  select amount into v_already_paid
+  from public.card_invoice_payments
+  where card_id = p_card_id and competencia = p_competencia;
+  v_already_paid := coalesce(v_already_paid, 0);
 
-  select coalesce(sum(amount), 0) into v_amount
+  -- Total atual de todas as compras dessa competência, incluindo
+  -- lançamentos criados depois do último pagamento.
+  select coalesce(sum(amount), 0) into v_total
   from public.transactions
   where card_id = p_card_id
     and public.invoice_competencia(date, v_card.closing_day) = p_competencia;
 
-  if v_amount <= 0 then
+  if v_total <= 0 then
     raise exception 'Não há gastos nessa fatura.';
+  end if;
+
+  v_delta := v_total - v_already_paid;
+  if v_delta <= 0 then
+    raise exception 'Esta fatura já foi paga.';
   end if;
 
   insert into public.transactions (
     account_id, user_id, type, amount, category_id, description, note, date,
-    card_id, is_invoice_payment
+    card_id, is_invoice_payment, affects_balance
   )
   values (
-    v_account_id, v_uid, 'expense', v_amount, null,
+    v_account_id, v_uid, 'expense', v_delta, null,
     'Fatura ' || v_card.name || ' (' || p_competencia || ')', null, p_date,
-    null, true
+    null, true, coalesce(p_affects_balance, true)
   )
   returning id into v_tx_id;
 
-  insert into public.card_invoice_payments (card_id, competencia, amount, payment_transaction_id)
-  values (p_card_id, p_competencia, v_amount, v_tx_id);
+  insert into public.card_invoice_payments (card_id, competencia, amount, payment_transaction_id, paid_at)
+  values (p_card_id, p_competencia, v_total, v_tx_id, now())
+  on conflict (card_id, competencia)
+  do update set
+    amount = v_total,
+    payment_transaction_id = v_tx_id,
+    paid_at = now();
 
   return v_tx_id;
 end;
@@ -940,6 +990,7 @@ revoke execute on function public.remove_partner(uuid) from public, anon;
 revoke execute on function public.get_my_accounts() from public, anon;
 revoke execute on function public.pay_card_invoice(uuid, text) from public, anon;
 revoke execute on function public.pay_card_invoice(uuid, text, date) from public, anon;
+revoke execute on function public.pay_card_invoice(uuid, text, date, boolean) from public, anon;
 
 grant execute on function public.create_shared_account(text, numeric) to authenticated;
 grant execute on function public.create_invite(text) to authenticated;
@@ -950,6 +1001,7 @@ grant execute on function public.remove_partner(uuid) to authenticated;
 grant execute on function public.get_my_accounts() to authenticated;
 grant execute on function public.pay_card_invoice(uuid, text) to authenticated;
 grant execute on function public.pay_card_invoice(uuid, text, date) to authenticated;
+grant execute on function public.pay_card_invoice(uuid, text, date, boolean) to authenticated;
 
 -- ============================================================================
 -- Done. Next steps:

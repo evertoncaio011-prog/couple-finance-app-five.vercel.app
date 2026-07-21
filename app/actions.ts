@@ -212,13 +212,25 @@ export async function deleteCard(id: string): Promise<ActionResult> {
 }
 
 // Paga a fatura de uma competência ('YYYY-MM'): gera a transação de saída
-// que efetivamente sai do saldo em conta. Toda a lógica (somar as compras,
-// impedir pagar duas vezes) fica no banco, em pay_card_invoice().
-export async function payCardInvoice(cardId: string, competencia: string): Promise<ActionResult> {
+// que, por padrão, sai do saldo em conta. Se affectsBalance for false, a
+// fatura é marcada como paga do mesmo jeito, mas o valor NÃO é descontado
+// do saldo (ex.: pagamento feito com dinheiro que não passou pela conta
+// compartilhada). Toda a lógica (somar as compras, impedir pagar duas
+// vezes) fica no banco, em pay_card_invoice().
+export async function payCardInvoice(
+  cardId: string,
+  competencia: string,
+  affectsBalance: boolean = true,
+): Promise<ActionResult> {
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
 
+  // Tenta a assinatura mais nova primeiro (com affects_balance) e cai para
+  // assinaturas mais antigas se o banco ainda não tiver sido atualizado —
+  // nesse caso, "não descontar do saldo" ainda não vai funcionar até o SQL
+  // do schema ser executado no Supabase.
   const attempts = [
+    { p_card_id: cardId, p_competencia: competencia, p_date: today, p_affects_balance: affectsBalance },
     { p_card_id: cardId, p_competencia: competencia, p_date: today },
     { p_card_id: cardId, p_competencia: competencia },
   ]
@@ -290,8 +302,13 @@ export async function updateDisplayName(_prev: ActionResult, formData: FormData)
 
 export async function updatePassword(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
+  const currentPassword = String(formData.get('current_password') ?? '').trim()
   const password = String(formData.get('password') ?? '').trim()
   const confirmPassword = String(formData.get('confirm_password') ?? '').trim()
+
+  if (!currentPassword) {
+    return { error: 'Informe sua senha atual.' }
+  }
 
   if (!password || !confirmPassword) {
     return { error: 'Preencha a nova senha e sua confirmação.' }
@@ -306,8 +323,24 @@ export async function updatePassword(_prev: ActionResult, formData: FormData): P
   }
 
   const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) {
+  if (userError || !user || !user.email) {
     return { error: 'Você precisa estar autenticado(a).' }
+  }
+
+  if (password === currentPassword) {
+    return { error: 'A nova senha precisa ser diferente da atual.' }
+  }
+
+  // Confere a senha atual tentando autenticar de novo com ela. Isso não
+  // troca a sessão atual do usuário — só valida a credencial antes de
+  // permitir a troca (evita que alguém com a sessão aberta, mas sem saber
+  // a senha, altere a senha da conta).
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  })
+  if (verifyError) {
+    return { error: 'Senha atual incorreta.' }
   }
 
   const { error } = await supabase.auth.updateUser({ password })

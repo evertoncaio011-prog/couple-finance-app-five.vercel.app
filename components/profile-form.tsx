@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 import { toast } from 'sonner'
 import { updateDisplayName, updatePassword } from '@/app/actions'
@@ -44,15 +44,31 @@ export function ProfileForm({ defaultValue }: { defaultValue: string }) {
   )
 }
 
-export function PasswordForm() {
+export function PasswordForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const [state, formAction] = useActionState(updatePassword, {})
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
-    if (state.success) toast.success('Senha atualizada!')
+    if (state.success) {
+      toast.success('Senha atualizada!')
+      formRef.current?.reset()
+      onSuccess?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.success])
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-3">
+      <div className="grid gap-2">
+        <Label htmlFor="current_password">Senha atual</Label>
+        <Input
+          id="current_password"
+          name="current_password"
+          type="password"
+          placeholder="Digite sua senha atual"
+          required
+        />
+      </div>
       <div className="grid gap-2">
         <Label htmlFor="password">Nova senha</Label>
         <Input id="password" name="password" type="password" placeholder="Digite a nova senha" required />

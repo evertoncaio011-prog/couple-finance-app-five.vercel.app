@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
-import { Calendar, Tag, User, FileText, Pencil, Trash2, Hash, CreditCard } from 'lucide-react'
+import { Calendar, Tag, User, FileText, Pencil, Trash2, Hash, CreditCard, Ban } from 'lucide-react'
 
 import { formatCurrency, formatDateShort } from '@/lib/format'
 import type { Card, Category, TransactionWithMeta } from '@/lib/types'
@@ -131,6 +131,16 @@ export function TransactionSheet({
                       <div>
                         <p className="text-xs text-muted-foreground">Forma de pagamento</p>
                         <p className="font-medium">Cartão · {transaction.card.name}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {transaction.affects_balance === false && (
+                    <div className="flex items-start gap-3">
+                      <Ban className="mt-1 h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Saldo em conta</p>
+                        <p className="font-medium">Esta transação não descontou do saldo</p>
                       </div>
                     </div>
                   )}

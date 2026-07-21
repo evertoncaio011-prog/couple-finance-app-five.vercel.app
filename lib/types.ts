@@ -56,9 +56,16 @@ export interface Transaction {
    * saldo em conta, só compõe o total da fatura até ela ser paga. */
   card_id: string | null
   /** Marca a transação de saída gerada automaticamente ao pagar uma
-   * fatura. Afeta o saldo, mas é excluída dos totais de gasto por
-   * categoria (que já contam as compras originais do cartão). */
+   * fatura. Por padrão afeta o saldo, mas é excluída dos totais de gasto
+   * por categoria (que já contam as compras originais do cartão). */
   is_invoice_payment: boolean
+  /** Se false, esta transação NÃO desconta do saldo em conta (ver
+   * computeAccountBalance em lib/summary.ts). Usado principalmente no
+   * pagamento de fatura, quando o usuário escolhe pagar "por fora"
+   * (ex.: dinheiro que não passa pela conta compartilhada) e só quer
+   * marcar a fatura como paga, sem mexer no saldo. Todas as outras
+   * transações usam o padrão (true). */
+  affects_balance: boolean
 }
 
 export interface TransactionWithMeta extends Transaction {

@@ -59,6 +59,7 @@ export function TransactionRow({
               {formatDateShort(tx.date)}
               {tx.card && ` • Cartão ${tx.card.name}`}
               {tx.author?.display_name && ` • ${tx.author.display_name}`}
+              {tx.affects_balance === false && ' • Não afeta o saldo'}
             </p>
           </div>
 

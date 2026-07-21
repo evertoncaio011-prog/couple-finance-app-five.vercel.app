@@ -29,15 +29,17 @@ const items = [
   { href: '/cards', label: 'Cartões', icon: CreditCard },
   { href: '/categories', label: 'Categorias', icon: Tags },
   { href: '/profile', label: 'Perfil', icon: User },
-  { href: '/profile', label: 'Configurações', icon: Settings2 },
+  { href: '/settings', label: 'Configurações', icon: Settings2 },
 ]
 
-// Botão fixo de menu (canto superior esquerdo, presente em todas as
-// telas) que abre um drawer lateral com todos os atalhos de navegação.
-// Substitui a barra inferior de abas antiga.
+// Botão fixo de menu (canto superior esquerdo) que abre um drawer lateral
+// com todos os atalhos de navegação. Só aparece na tela de início — nas
+// outras telas o usuário navega pelos links/headers de cada página.
 export function NavDrawer() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+
+  if (pathname !== '/dashboard') return null
 
   return (
     <>

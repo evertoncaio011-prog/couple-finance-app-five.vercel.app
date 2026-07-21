@@ -95,12 +95,15 @@ export function PushButton() {
     }
   }
 
-  // O botão só aparece se ele ainda NÃO estiver inscrito
-  if (isSubscribed) return null
+  // Quando já está inscrito, mostra um status em vez de simplesmente
+  // sumir — fica mais claro dentro de uma linha de lista de configurações.
+  if (isSubscribed) {
+    return <span className="text-sm font-medium text-muted-foreground">Ativado</span>
+  }
 
   return (
-    <Button onClick={subscribe} disabled={isLoading} variant="default">
-      {isLoading ? 'Ativando...' : 'Ativar Notificações'}
+    <Button onClick={subscribe} disabled={isLoading} variant="default" size="sm">
+      {isLoading ? 'Ativando...' : 'Ativar'}
     </Button>
   )
 }

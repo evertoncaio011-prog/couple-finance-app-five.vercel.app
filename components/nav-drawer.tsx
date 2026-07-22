@@ -47,7 +47,7 @@ export function NavDrawer() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Abrir navegação"
-        className="fixed left-5 top-6 z-40 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform active:scale-90"
+        className="fixed left-5 top-6 z-40 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform active:scale-90 lg:hidden"
       >
         <Menu className="h-5 w-5" aria-hidden />
       </button>

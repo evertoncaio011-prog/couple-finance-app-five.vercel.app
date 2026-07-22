@@ -15,12 +15,12 @@ export function PageHeader({
   const router = useRouter()
 
   return (
-    <header className="flex items-start justify-between gap-4 py-4 pr-5 pl-16 pt-6">
+    <header className="flex items-start justify-between gap-4 py-4 pr-5 pl-16 pt-6 lg:pl-5">
       <button
         type="button"
         onClick={() => router.back()}
         aria-label="Voltar"
-        className="fixed left-5 top-6 z-40 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform active:scale-90"
+        className="fixed left-5 top-6 z-40 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform active:scale-90 lg:hidden"
       >
         <ArrowLeft className="h-5 w-5" aria-hidden />
       </button>

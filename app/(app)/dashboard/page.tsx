@@ -48,7 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <header className="flex items-center justify-between py-1 pr-5 pl-16 pt-6">
+      <header className="flex items-center justify-between py-1 pr-5 pl-16 pt-6 lg:pl-5">
         <BrandMark showIcon={false} />
         {myAccounts.length > 1 && <AccountSwitcher accounts={myAccounts} />}
       </header>

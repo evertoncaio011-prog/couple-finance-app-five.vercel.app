@@ -215,21 +215,31 @@ export async function deleteCard(id: string): Promise<ActionResult> {
 // que, por padrão, sai do saldo em conta. Se affectsBalance for false, a
 // fatura é marcada como paga do mesmo jeito, mas o valor NÃO é descontado
 // do saldo (ex.: pagamento feito com dinheiro que não passou pela conta
-// compartilhada). Toda a lógica (somar as compras, impedir pagar duas
-// vezes) fica no banco, em pay_card_invoice().
+// compartilhada). Se amount for informado, é um pagamento PARCIAL
+// (adiantamento): a fatura continua em aberto pelo valor restante. Toda a
+// lógica (somar as compras, impedir pagar duas vezes, validar o valor)
+// fica no banco, em pay_card_invoice().
 export async function payCardInvoice(
   cardId: string,
   competencia: string,
   affectsBalance: boolean = true,
+  amount?: number,
 ): Promise<ActionResult> {
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
 
-  // Tenta a assinatura mais nova primeiro (com affects_balance) e cai para
+  // Tenta a assinatura mais nova primeiro (com p_amount) e cai para
   // assinaturas mais antigas se o banco ainda não tiver sido atualizado —
-  // nesse caso, "não descontar do saldo" ainda não vai funcionar até o SQL
-  // do schema ser executado no Supabase.
+  // nesse caso, pagamento parcial ainda não vai funcionar até o SQL do
+  // schema ser executado no Supabase.
   const attempts = [
+    {
+      p_card_id: cardId,
+      p_competencia: competencia,
+      p_date: today,
+      p_affects_balance: affectsBalance,
+      p_amount: amount ?? null,
+    },
     { p_card_id: cardId, p_competencia: competencia, p_date: today, p_affects_balance: affectsBalance },
     { p_card_id: cardId, p_competencia: competencia, p_date: today },
     { p_card_id: cardId, p_competencia: competencia },

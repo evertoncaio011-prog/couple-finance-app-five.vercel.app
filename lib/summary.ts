@@ -118,48 +118,50 @@ export function monthlySeries(
 }
 
 /**
- * Faturas em aberto (ainda não pagas) de cada cartão, agrupadas por
- * competência. Cada compra no cartão é agrupada pela competência que ela
- * ocupa (calculada a partir do dia de fechamento).
+ * Faturas em aberto (ainda não pagas, total ou parcialmente) de cada
+ * cartão, agrupadas por competência. Cada compra no cartão é agrupada
+ * pela competência que ela ocupa (calculada a partir do dia de
+ * fechamento).
  *
- * Pagar uma fatura não "trava" a competência para sempre: só exclui as
- * compras que já existiam no momento do pagamento (created_at <= paid_at
- * daquele pagamento). Lançamentos novos na mesma competência, feitos
- * depois do pagamento, continuam entrando aqui e formam uma fatura em
- * aberto (o valor ainda não pago) — antes eles eram descartados por
- * completo assim que a competência tinha qualquer pagamento registrado,
- * fazendo esses lançamentos sumirem sem nunca contar em fatura nenhuma.
+ * O valor em aberto de cada fatura é sempre `total das compras dessa
+ * competência − soma já paga (card_invoice_payments.amount)`. Isso
+ * cobre os três casos:
+ * - Nunca paga: nada em card_invoice_payments, valor em aberto = total.
+ * - Paga parcialmente (adiantamento): valor em aberto = total − o que já
+ *   foi adiantado, e continua aparecendo aqui até zerar.
+ * - Paga integralmente: valor em aberto chega a 0 (ou menos) e some da
+ *   lista. Novas compras na mesma competência depois disso voltam a
+ *   aumentar o total e reabrem a fatura automaticamente.
  */
 export function openInvoicesByCard(
   cards: Card[],
   txs: TransactionWithMeta[],
   payments: CardInvoicePayment[],
 ): CardInvoice[] {
-  const paidAt = new Map<string, number>()
+  const paidAmount = new Map<string, number>()
   for (const p of payments) {
-    paidAt.set(`${p.card_id}:${p.competencia}`, new Date(p.paid_at).getTime())
+    paidAmount.set(`${p.card_id}:${p.competencia}`, Number(p.amount))
   }
-  const totals = new Map<string, number>()
 
+  const totals = new Map<string, number>()
   for (const t of txs) {
     if (!t.card_id) continue
     const card = cards.find((c) => c.id === t.card_id)
     if (!card) continue
     const competencia = invoiceCompetencia(t.date, card.closing_day)
     const key = `${card.id}:${competencia}`
-    const paidTimestamp = paidAt.get(key)
-    if (paidTimestamp !== undefined && new Date(t.created_at).getTime() <= paidTimestamp) {
-      continue // já foi coberta por um pagamento anterior dessa competência
-    }
     totals.set(key, (totals.get(key) ?? 0) + Number(t.amount))
   }
 
   const result: CardInvoice[] = []
-  for (const [key, total] of totals) {
+  for (const [key, invoiceTotal] of totals) {
     const [cardId, competencia] = key.split(':')
     const card = cards.find((c) => c.id === cardId)
-    if (!card || total <= 0) continue
-    result.push({ card, competencia, total, paid: false })
+    if (!card) continue
+    const paidSoFar = paidAmount.get(key) ?? 0
+    const total = invoiceTotal - paidSoFar
+    if (total <= 0) continue
+    result.push({ card, competencia, total, invoiceTotal, paidSoFar, paid: false })
   }
   return result.sort((a, b) => a.competencia.localeCompare(b.competencia))
 }

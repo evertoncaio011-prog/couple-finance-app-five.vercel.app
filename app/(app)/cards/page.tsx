@@ -95,6 +95,8 @@ export default async function CardsPage() {
                               cardId={c.id}
                               competencia={inv.competencia}
                               total={inv.total}
+                              invoiceTotal={inv.invoiceTotal}
+                              paidSoFar={inv.paidSoFar}
                             />
                           </div>
                         ))}

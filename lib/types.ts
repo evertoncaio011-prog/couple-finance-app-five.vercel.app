@@ -87,8 +87,10 @@ export interface Card {
   created_at: string
 }
 
-/** Uma linha em card_invoice_payments — marca que a fatura de um cartão
- * numa competência ('YYYY-MM') já foi paga. */
+/** Uma linha em card_invoice_payments — registra quanto já foi pago da
+ * fatura de um cartão numa competência ('YYYY-MM'). `amount` é o total
+ * acumulado já pago (pode ser menor que o valor da fatura em caso de
+ * pagamento parcial/adiantamento). */
 export interface CardInvoicePayment {
   id: string
   card_id: string
@@ -104,6 +106,12 @@ export interface CardInvoicePayment {
 export interface CardInvoice {
   card: Card
   competencia: string
+  /** Valor ainda em aberto (o que falta pagar): invoiceTotal - paidSoFar. */
   total: number
+  /** Valor total de todas as compras dessa competência, sem descontar
+   * nenhum pagamento/adiantamento já feito. */
+  invoiceTotal: number
+  /** Quanto já foi pago/adiantado dessa fatura até agora. */
+  paidSoFar: number
   paid: boolean
 }

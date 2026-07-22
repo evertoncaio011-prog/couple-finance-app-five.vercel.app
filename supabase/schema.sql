@@ -872,7 +872,7 @@ security definer
 set search_path = public
 as $$
 begin
-  return public.pay_card_invoice(p_card_id, p_competencia, current_date, true);
+  return public.pay_card_invoice(p_card_id, p_competencia, current_date, true, null);
 end;
 $$;
 
@@ -887,7 +887,23 @@ security definer
 set search_path = public
 as $$
 begin
-  return public.pay_card_invoice(p_card_id, p_competencia, p_date, true);
+  return public.pay_card_invoice(p_card_id, p_competencia, p_date, true, null);
+end;
+$$;
+
+create or replace function public.pay_card_invoice(
+  p_card_id uuid,
+  p_competencia text,
+  p_date date,
+  p_affects_balance boolean
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return public.pay_card_invoice(p_card_id, p_competencia, p_date, p_affects_balance, null);
 end;
 $$;
 
@@ -896,11 +912,18 @@ $$;
 -- do mesmo jeito (para aparecer no histórico e não contar de novo como
 -- gasto por categoria), mas ela NÃO desconta do saldo — para quando o
 -- pagamento foi feito com dinheiro que não passou pela conta compartilhada.
+--
+-- p_amount: null (padrão) paga o valor inteiro ainda em aberto. Se
+-- informado, é um pagamento PARCIAL (adiantamento): só esse valor é
+-- descontado, tem que ser > 0 e não pode passar do que ainda falta pagar.
+-- A fatura continua em aberto (com o valor restante) até ser totalmente
+-- quitada — pode receber quantos adiantamentos forem necessários.
 create or replace function public.pay_card_invoice(
   p_card_id uuid,
   p_competencia text,
   p_date date,
-  p_affects_balance boolean
+  p_affects_balance boolean,
+  p_amount numeric
 )
 returns uuid
 language plpgsql
@@ -913,7 +936,8 @@ declare
   v_card public.cards%rowtype;
   v_already_paid numeric(14,2);
   v_total numeric(14,2);
-  v_delta numeric(14,2);
+  v_remaining numeric(14,2);
+  v_pay_amount numeric(14,2);
   v_tx_id uuid;
 begin
   if v_uid is null then
@@ -934,15 +958,15 @@ begin
     raise exception 'Competência inválida.';
   end if;
 
-  -- Quanto já foi pago anteriormente nessa competência (0 se for a
-  -- primeira vez que essa fatura é paga).
+  -- Quanto já foi pago/adiantado anteriormente nessa competência (0 se
+  -- for a primeira vez que essa fatura recebe algum pagamento).
   select amount into v_already_paid
   from public.card_invoice_payments
   where card_id = p_card_id and competencia = p_competencia;
   v_already_paid := coalesce(v_already_paid, 0);
 
   -- Total atual de todas as compras dessa competência, incluindo
-  -- lançamentos criados depois do último pagamento.
+  -- lançamentos criados depois de qualquer pagamento anterior.
   select coalesce(sum(amount), 0) into v_total
   from public.transactions
   where card_id = p_card_id
@@ -952,9 +976,17 @@ begin
     raise exception 'Não há gastos nessa fatura.';
   end if;
 
-  v_delta := v_total - v_already_paid;
-  if v_delta <= 0 then
+  v_remaining := v_total - v_already_paid;
+  if v_remaining <= 0 then
     raise exception 'Esta fatura já foi paga.';
+  end if;
+
+  v_pay_amount := coalesce(p_amount, v_remaining);
+  if v_pay_amount <= 0 then
+    raise exception 'O valor pago precisa ser maior que zero.';
+  end if;
+  if v_pay_amount > v_remaining then
+    raise exception 'O valor pago não pode ser maior que o valor em aberto da fatura.';
   end if;
 
   insert into public.transactions (
@@ -962,17 +994,19 @@ begin
     card_id, is_invoice_payment, affects_balance
   )
   values (
-    v_account_id, v_uid, 'expense', v_delta, null,
-    'Fatura ' || v_card.name || ' (' || p_competencia || ')', null, p_date,
+    v_account_id, v_uid, 'expense', v_pay_amount, null,
+    'Fatura ' || v_card.name || ' (' || p_competencia || ')'
+      || (case when v_pay_amount < v_remaining then ' - adiantamento' else '' end),
+    null, p_date,
     null, true, coalesce(p_affects_balance, true)
   )
   returning id into v_tx_id;
 
   insert into public.card_invoice_payments (card_id, competencia, amount, payment_transaction_id, paid_at)
-  values (p_card_id, p_competencia, v_total, v_tx_id, now())
+  values (p_card_id, p_competencia, v_already_paid + v_pay_amount, v_tx_id, now())
   on conflict (card_id, competencia)
   do update set
-    amount = v_total,
+    amount = v_already_paid + v_pay_amount,
     payment_transaction_id = v_tx_id,
     paid_at = now();
 
@@ -991,6 +1025,7 @@ revoke execute on function public.get_my_accounts() from public, anon;
 revoke execute on function public.pay_card_invoice(uuid, text) from public, anon;
 revoke execute on function public.pay_card_invoice(uuid, text, date) from public, anon;
 revoke execute on function public.pay_card_invoice(uuid, text, date, boolean) from public, anon;
+revoke execute on function public.pay_card_invoice(uuid, text, date, boolean, numeric) from public, anon;
 
 grant execute on function public.create_shared_account(text, numeric) to authenticated;
 grant execute on function public.create_invite(text) to authenticated;
@@ -1002,6 +1037,7 @@ grant execute on function public.get_my_accounts() to authenticated;
 grant execute on function public.pay_card_invoice(uuid, text) to authenticated;
 grant execute on function public.pay_card_invoice(uuid, text, date) to authenticated;
 grant execute on function public.pay_card_invoice(uuid, text, date, boolean) to authenticated;
+grant execute on function public.pay_card_invoice(uuid, text, date, boolean, numeric) to authenticated;
 
 -- ============================================================================
 -- Done. Next steps:

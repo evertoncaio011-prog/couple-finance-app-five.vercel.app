@@ -120,6 +120,11 @@ export async function addTransaction(_prev: ActionResult, formData: FormData): P
     title: notificationTitle, message: `${description || 'Sem descrição'} • R$ ${amount.toFixed(2)}` 
   })
 
+  // Compras no cartão (card_id preenchido) mudam o total da fatura em
+  // aberto exibida em /cards — precisa revalidar essa rota também, senão a
+  // compra é salva mas some da lista de faturas até algo mais invalidar o
+  // cache (ex.: pagar uma fatura).
+  revalidatePath('/cards')
   revalidatePath('/dashboard')
   revalidatePath('/transactions')
   redirect('/transactions')
@@ -169,6 +174,7 @@ export async function updateTransaction(id: string, _prev: ActionResult, formDat
   }).eq('id', id).eq('account_id', account.id)
 
   if (error) return { error: error.message }
+  revalidatePath('/cards')
   revalidatePath('/dashboard')
   revalidatePath('/transactions')
   redirect('/transactions')
@@ -180,6 +186,7 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
   const supabase = await createClient()
   const { error } = await supabase.from('transactions').delete().eq('id', id).eq('account_id', account.id)
   if (error) return { error: error.message }
+  revalidatePath('/cards')
   revalidatePath('/dashboard')
   revalidatePath('/transactions')
   return { success: true }

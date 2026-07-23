@@ -129,7 +129,25 @@ export async function updateTransaction(id: string, _prev: ActionResult, formDat
   const { user, account } = await getSessionContext()
   if (!user || !account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
   const supabase = await createClient()
-  const type = String(formData.get('type') ?? '')
+
+  // Transações geradas automaticamente pelo pagamento de fatura
+  // (is_invoice_payment) não podem trocar de tipo nem ganhar/perder vínculo
+  // com cartão — isso quebraria o cálculo de saldo (computeAccountBalance) e
+  // de faturas em aberto (openInvoicesByCard) em lib/summary.ts, que
+  // dependem desses dois campos permanecerem exatamente como
+  // pay_card_invoice() os criou. A tela já impede isso, mas travamos aqui
+  // também para não depender só do client.
+  const { data: existing, error: existingError } = await supabase
+    .from('transactions')
+    .select('is_invoice_payment, type, card_id')
+    .eq('id', id)
+    .eq('account_id', account.id)
+    .single()
+
+  if (existingError || !existing) return { error: 'Transação não encontrada.' }
+
+  const isLocked = existing.is_invoice_payment
+  const type = isLocked ? existing.type : String(formData.get('type') ?? '')
   const amount = Number(formData.get('amount') ?? 0)
   const description = String(formData.get('description') ?? '').trim()
 
@@ -139,7 +157,7 @@ export async function updateTransaction(id: string, _prev: ActionResult, formDat
 
   const paymentMethod = String(formData.get('payment_method') ?? 'cash')
   const cardId = String(formData.get('card_id') ?? '') || null
-  if (paymentMethod === 'credit' && type !== 'income' && !cardId) {
+  if (!isLocked && paymentMethod === 'credit' && type !== 'income' && !cardId) {
     return { error: 'Escolha o cartão usado na compra.' }
   }
 
@@ -147,7 +165,7 @@ export async function updateTransaction(id: string, _prev: ActionResult, formDat
     type, amount, description, date: String(formData.get('date') ?? ''),
     category_id: String(formData.get('category_id') ?? '') || null,
     note: String(formData.get('note') ?? '').trim() || null,
-    card_id: paymentMethod === 'credit' && type !== 'income' ? cardId : null,
+    card_id: isLocked ? existing.card_id : (paymentMethod === 'credit' && type !== 'income' ? cardId : null),
   }).eq('id', id).eq('account_id', account.id)
 
   if (error) return { error: error.message }

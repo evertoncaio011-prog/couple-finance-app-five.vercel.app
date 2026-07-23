@@ -40,6 +40,11 @@ export function TransactionForm({
   initialDate,
 }: TransactionFormProps) {
   const isEdit = mode === 'edit' && !!transaction
+  // Transação gerada automaticamente pelo pagamento de uma fatura: tipo e
+  // forma de pagamento não podem mudar (ver computeAccountBalance e
+  // openInvoicesByCard em lib/summary.ts, que dependem desses campos
+  // permanecerem exatamente como pay_card_invoice() os criou).
+  const isLockedInvoicePayment = isEdit && !!transaction?.is_invoice_payment
 
   const action = isEdit ? updateTransaction.bind(null, transaction!.id) : addTransaction
 
@@ -69,38 +74,44 @@ export function TransactionForm({
       <input type="hidden" name="payment_method" value={paymentMethod} readOnly />
       <input type="hidden" name="card_id" value={paymentMethod === 'credit' ? cardId : ''} readOnly />
 
-      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1">
-        <button
-          type="button"
-          onClick={() => setType('expense')}
-          className={cn(
-            'rounded-xl py-2.5 text-sm font-semibold transition-colors',
-            type === 'expense' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
-          )}
-        >
-          Despesa
-        </button>
-        <button
-          type="button"
-          onClick={() => setType('income')}
-          className={cn(
-            'rounded-xl py-2.5 text-sm font-semibold transition-colors',
-            type === 'income' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
-          )}
-        >
-          Receita
-        </button>
-        <button
-          type="button"
-          onClick={() => setType('neutral')}
-          className={cn(
-            'rounded-xl py-2.5 text-sm font-semibold transition-colors',
-            type === 'neutral' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
-          )}
-        >
-          Outros
-        </button>
-      </div>
+      {isLockedInvoicePayment ? (
+        <div className="rounded-2xl bg-muted p-3 text-center text-sm font-semibold text-muted-foreground">
+          Despesa (pagamento de fatura)
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => setType('expense')}
+            className={cn(
+              'rounded-xl py-2.5 text-sm font-semibold transition-colors',
+              type === 'expense' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
+            )}
+          >
+            Despesa
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('income')}
+            className={cn(
+              'rounded-xl py-2.5 text-sm font-semibold transition-colors',
+              type === 'income' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
+            )}
+          >
+            Receita
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('neutral')}
+            className={cn(
+              'rounded-xl py-2.5 text-sm font-semibold transition-colors',
+              type === 'neutral' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
+            )}
+          >
+            Outros
+          </button>
+        </div>
+      )}
 
       {type === 'neutral' && (
         <>
@@ -119,14 +130,15 @@ export function TransactionForm({
         </>
       )}
 
-      {type !== 'neutral' && isEdit && transaction?.is_invoice_payment && (
+      {isLockedInvoicePayment && (
         <p className="-mt-2 text-xs text-amber-600 dark:text-amber-400">
           Esta transação é o pagamento de uma fatura de cartão, gerado
-          automaticamente. Editar o valor não atualiza a fatura original.
+          automaticamente. Tipo e forma de pagamento não podem ser alterados
+          aqui. Editar o valor não atualiza a fatura original.
         </p>
       )}
 
-      {type !== 'income' && (
+      {!isLockedInvoicePayment && type !== 'income' && (
         <div className="grid gap-2">
           <Label>Forma de pagamento</Label>
           <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">

@@ -33,13 +33,12 @@ const items = [
 ]
 
 // Botão fixo de menu (canto superior esquerdo) que abre um drawer lateral
-// com todos os atalhos de navegação. Só aparece na tela de início — nas
-// outras telas o usuário navega pelos links/headers de cada página.
+// com todos os atalhos de navegação. Aparece em todas as telas no
+// celular; em telas grandes fica escondido porque a sidebar de desktop
+// (components/desktop-sidebar.tsx) já cobre a navegação.
 export function NavDrawer() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
-
-  if (pathname !== '/dashboard') return null
 
   return (
     <>

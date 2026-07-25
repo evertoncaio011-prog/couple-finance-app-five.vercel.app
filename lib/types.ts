@@ -115,3 +115,18 @@ export interface CardInvoice {
   paidSoFar: number
   paid: boolean
 }
+
+/** Meta de economia do casal (ex.: "Viagem para a praia"). Percentual,
+ * progresso e "quanto falta" são derivados de target_amount/current_amount
+ * no próprio app (ver components/goal-card.tsx) — não ficam salvos aqui. */
+export interface Goal {
+  id: string
+  account_id: string
+  name: string
+  target_amount: number
+  current_amount: number
+  color: string
+  /** Preenchido automaticamente quando current_amount atinge target_amount. */
+  completed_at: string | null
+  created_at: string
+}

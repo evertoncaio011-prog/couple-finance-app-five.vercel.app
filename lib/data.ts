@@ -4,6 +4,7 @@ import type {
   Card,
   CardInvoicePayment,
   Category,
+  Goal,
   MyAccount,
   Profile,
   SharedAccount,
@@ -155,4 +156,21 @@ export async function getCardInvoicePayments(
     return []
   }
   return (data as CardInvoicePayment[]) ?? []
+}
+
+export async function getGoals(accountId: string): Promise<Goal[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('account_id', accountId)
+    // Metas em aberto primeiro; dentro de cada grupo, mais recentes primeiro.
+    .order('completed_at', { ascending: true, nullsFirst: true })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Falha ao carregar metas:', error.message)
+    return []
+  }
+  return (data as Goal[]) ?? []
 }

@@ -297,6 +297,121 @@ export async function payCardInvoice(
   return { error: 'Não foi possível pagar a fatura.' }
 }
 
+/* ---------- Metas ---------- */
+
+export async function addGoal(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { account } = await getSessionContext()
+  if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  const supabase = await createClient()
+  const name = String(formData.get('name') ?? '').trim()
+  const targetAmount = Number(formData.get('target_amount') ?? 0)
+  const color = String(formData.get('color') ?? '#0ea5e9')
+
+  if (!name) return { error: 'Dê um nome à meta.' }
+  if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+    return { error: 'Informe um valor alvo maior que zero.' }
+  }
+
+  const { error } = await supabase.from('goals').insert({
+    account_id: account.id,
+    name,
+    target_amount: targetAmount,
+    color,
+  })
+  if (error) return { error: error.message }
+  revalidatePath('/goals')
+  return { success: true }
+}
+
+export async function updateGoal(
+  id: string,
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const { account } = await getSessionContext()
+  if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  const supabase = await createClient()
+  const name = String(formData.get('name') ?? '').trim()
+  const targetAmount = Number(formData.get('target_amount') ?? 0)
+
+  if (!name) return { error: 'Dê um nome à meta.' }
+  if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+    return { error: 'Informe um valor alvo maior que zero.' }
+  }
+
+  // Reavalia se a meta continua concluída com o novo valor alvo (ex.: se o
+  // alvo subiu e passou a ser maior que o valor já guardado, ela reabre).
+  const { data: current } = await supabase
+    .from('goals')
+    .select('current_amount')
+    .eq('id', id)
+    .eq('account_id', account.id)
+    .single<{ current_amount: number }>()
+
+  const isComplete = current ? Number(current.current_amount) >= targetAmount : false
+
+  const { error } = await supabase
+    .from('goals')
+    .update({
+      name,
+      target_amount: targetAmount,
+      completed_at: isComplete ? new Date().toISOString() : null,
+    })
+    .eq('id', id)
+    .eq('account_id', account.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/goals')
+  return { success: true }
+}
+
+export async function deleteGoal(id: string): Promise<ActionResult> {
+  const { account } = await getSessionContext()
+  if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  const supabase = await createClient()
+  const { error } = await supabase.from('goals').delete().eq('id', id).eq('account_id', account.id)
+  if (error) return { error: error.message }
+  revalidatePath('/goals')
+  return { success: true }
+}
+
+// Soma `amount` ao valor já guardado na meta. Marca completed_at
+// automaticamente quando o total atinge (ou passa) o valor alvo, e limpa de
+// volta para null se, por algum motivo, o valor cair abaixo dele de novo.
+export async function addGoalAmount(id: string, amount: number): Promise<ActionResult> {
+  const { account } = await getSessionContext()
+  if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: 'Informe um valor maior que zero.' }
+  }
+  const supabase = await createClient()
+
+  const { data: goal, error: fetchError } = await supabase
+    .from('goals')
+    .select('current_amount, target_amount')
+    .eq('id', id)
+    .eq('account_id', account.id)
+    .single<{ current_amount: number; target_amount: number }>()
+
+  if (fetchError || !goal) return { error: 'Meta não encontrada.' }
+
+  const newAmount = Number(goal.current_amount) + amount
+  const isComplete = newAmount >= Number(goal.target_amount)
+
+  const { error } = await supabase
+    .from('goals')
+    .update({
+      current_amount: newAmount,
+      completed_at: isComplete ? new Date().toISOString() : null,
+    })
+    .eq('id', id)
+    .eq('account_id', account.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/goals')
+  return { success: true }
+}
+
 /* ---------- Perfil, Categorias e Outros ---------- */
 
 export async function addCategory(_prev: ActionResult, formData: FormData): Promise<ActionResult> {

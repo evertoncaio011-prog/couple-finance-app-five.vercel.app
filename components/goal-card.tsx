@@ -33,6 +33,9 @@ export function GoalCard({ goal }: { goal: Goal }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium">{goal.name}</p>
+            {goal.description && (
+              <p className="truncate text-xs text-muted-foreground/80">{goal.description}</p>
+            )}
             <p className="truncate text-xs text-muted-foreground">
               {formatCurrency(current)} de {formatCurrency(target)}
             </p>

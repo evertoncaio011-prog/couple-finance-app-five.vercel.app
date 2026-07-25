@@ -123,6 +123,7 @@ export interface Goal {
   id: string
   account_id: string
   name: string
+  description: string | null
   target_amount: number
   current_amount: number
   color: string

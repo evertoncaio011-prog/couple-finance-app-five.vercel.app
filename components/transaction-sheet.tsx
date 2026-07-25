@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
-import { Calendar, Tag, User, FileText, Pencil, Trash2, Hash, CreditCard, Ban } from 'lucide-react'
+import { Calendar, Tag, User, FileText, Pencil, Trash2, CreditCard, Ban } from 'lucide-react'
 
 import { formatCurrency, formatDateShort } from '@/lib/format'
 import type { Card, Category, TransactionWithMeta } from '@/lib/types'
@@ -183,15 +183,6 @@ export function TransactionSheet({
                     </div>
                   )}
 
-                  <div className="flex items-start gap-3">
-                    <Hash className="mt-1 h-4 w-4 text-muted-foreground/50" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">ID</p>
-                      <p className="font-mono text-[11px] text-muted-foreground">
-                        {transaction.id}
-                      </p>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 

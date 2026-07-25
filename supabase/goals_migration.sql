@@ -8,6 +8,7 @@ create table if not exists public.goals (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references public.shared_accounts (id) on delete cascade,
   name text not null,
+  description text,
   target_amount numeric(14,2) not null check (target_amount > 0),
   current_amount numeric(14,2) not null default 0 check (current_amount >= 0),
   color text not null default '#0ea5e9',
@@ -16,6 +17,10 @@ create table if not exists public.goals (
   completed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- Caso a tabela já exista de uma execução anterior deste script (sem a
+-- coluna description), esta linha adiciona a coluna sem apagar nada.
+alter table public.goals add column if not exists description text;
 
 create index if not exists idx_goals_account on public.goals (account_id);
 

@@ -304,6 +304,7 @@ export async function addGoal(_prev: ActionResult, formData: FormData): Promise<
   if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
   const supabase = await createClient()
   const name = String(formData.get('name') ?? '').trim()
+  const description = String(formData.get('description') ?? '').trim()
   const targetAmount = Number(formData.get('target_amount') ?? 0)
   const color = String(formData.get('color') ?? '#0ea5e9')
 
@@ -315,6 +316,7 @@ export async function addGoal(_prev: ActionResult, formData: FormData): Promise<
   const { error } = await supabase.from('goals').insert({
     account_id: account.id,
     name,
+    description: description || null,
     target_amount: targetAmount,
     color,
   })
@@ -332,6 +334,7 @@ export async function updateGoal(
   if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
   const supabase = await createClient()
   const name = String(formData.get('name') ?? '').trim()
+  const description = String(formData.get('description') ?? '').trim()
   const targetAmount = Number(formData.get('target_amount') ?? 0)
 
   if (!name) return { error: 'Dê um nome à meta.' }
@@ -354,6 +357,7 @@ export async function updateGoal(
     .from('goals')
     .update({
       name,
+      description: description || null,
       target_amount: targetAmount,
       completed_at: isComplete ? new Date().toISOString() : null,
     })

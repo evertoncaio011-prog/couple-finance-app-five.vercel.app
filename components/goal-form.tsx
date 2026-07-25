@@ -7,6 +7,7 @@ import { addGoal } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -41,6 +42,17 @@ export function GoalForm() {
       <div className="grid gap-2">
         <Label htmlFor="goal-name">Nome</Label>
         <Input id="goal-name" name="name" placeholder="Ex.: Viagem para a praia" required />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="goal-description">
+          Descrição <span className="font-normal text-muted-foreground">(opcional)</span>
+        </Label>
+        <Textarea
+          id="goal-description"
+          name="description"
+          placeholder="Algum detalhe sobre essa meta…"
+        />
       </div>
 
       <div className="grid gap-2">

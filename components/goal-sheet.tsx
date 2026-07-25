@@ -8,6 +8,7 @@ import { PartyPopper, Pencil, PlusCircle, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Sheet,
   SheetContent,
@@ -112,6 +113,18 @@ export function GoalSheet({
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="edit-goal-description">
+                  Descrição <span className="font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <Textarea
+                  id="edit-goal-description"
+                  name="description"
+                  defaultValue={goal.description ?? ''}
+                  placeholder="Algum detalhe sobre essa meta…"
+                />
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="edit-goal-target">Valor alvo</Label>
                 <Input
                   id="edit-goal-target"
@@ -150,6 +163,12 @@ export function GoalSheet({
                   <PartyPopper className="h-5 w-5 shrink-0" aria-hidden />
                   Meta concluída! 🎉
                 </div>
+              )}
+
+              {goal.description && (
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {goal.description}
+                </p>
               )}
 
               <div className="space-y-2">

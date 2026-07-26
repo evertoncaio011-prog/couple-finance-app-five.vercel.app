@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Sparkles, TrendingUp, PieChart } from 'lucide-react'
 import {
   requireAccount,
   getTransactions,
@@ -9,9 +9,9 @@ import {
   getCardInvoicePayments,
   getGoals,
 } from '@/lib/data'
-import { BrandMark } from '@/components/brand-mark'
 import { AccountSwitcher } from '@/components/account-switcher'
 import { BalanceCard } from '@/components/balance-card'
+import { DashboardShortcuts } from '@/components/dashboard-shortcuts'
 import { InvoicesCard } from '@/components/invoices-card'
 import { IncomeExpenseChart, CategoryDonut } from '@/components/spending-charts'
 import { TransactionRow } from '@/components/transaction-row'
@@ -26,7 +26,7 @@ import {
 import { currentMonthKey, formatCurrency, monthKey } from '@/lib/format'
 
 export default async function DashboardPage() {
-  const { account } = await requireAccount()
+  const { account, profile } = await requireAccount()
   const [transactions, categories, myAccounts, cards, goals] = await Promise.all([
     getTransactions(account.id),
     getCategories(account.id),
@@ -53,12 +53,24 @@ export default async function DashboardPage() {
     transactions.filter((t) => monthKey(t.date) === currentMonthKey()),
   )
   const recent = transactions.slice(0, 3)
+  const firstName = profile.display_name?.trim().split(' ')[0] || 'você'
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <header className="flex items-center justify-between py-1 pr-5 pl-16 pt-6 lg:pl-5">
-        <BrandMark showIcon={false} />
-        {myAccounts.length > 1 && <AccountSwitcher accounts={myAccounts} />}
+      <header className="flex items-start justify-between gap-3 py-1 pr-5 pl-16 pt-6 lg:pl-5">
+        <div className="min-w-0">
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight lg:text-3xl">
+            Olá, {firstName}!
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Acompanhem juntos as finanças de {account.name}.
+          </p>
+        </div>
+        {myAccounts.length > 1 && (
+          <div className="shrink-0 pt-1">
+            <AccountSwitcher accounts={myAccounts} />
+          </div>
+        )}
       </header>
 
       <BalanceCard
@@ -74,15 +86,23 @@ export default async function DashboardPage() {
         <InvoicesCard total={totalOpenInvoices} invoices={openInvoices} />
       )}
 
+      <DashboardShortcuts />
+
       <section className="mx-5 rounded-3xl border border-border bg-card p-5">
-        <h2 className="font-heading text-base font-semibold">Últimos 6 meses</h2>
+        <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
+          <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
+          Últimos 6 meses
+        </h2>
         <div className="mt-4">
           <IncomeExpenseChart data={series} />
         </div>
       </section>
 
       <section className="mx-5 rounded-3xl border border-border bg-card p-5">
-        <h2 className="font-heading text-base font-semibold">Este mês por categoria</h2>
+        <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
+          <PieChart className="h-4 w-4 text-primary" aria-hidden />
+          Este mês por categoria
+        </h2>
         {categorySlices.length === 0 ? (
           <p className="mt-6 py-6 text-center text-sm text-muted-foreground">
             Nenhum gasto registrado este mês ainda.
@@ -113,9 +133,12 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between px-5">
-          <h2 className="font-heading text-base font-semibold">Atividade recente</h2>
+      <section className="mx-5 overflow-hidden rounded-3xl border border-border bg-card">
+        <div className="flex items-center justify-between px-5 pt-5">
+          <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
+            <Sparkles className="h-4 w-4 text-primary" aria-hidden />
+            Atividade recente
+          </h2>
           <Link
             href="/transactions"
             className="flex items-center gap-0.5 text-sm font-medium text-primary transition-opacity hover:opacity-80"

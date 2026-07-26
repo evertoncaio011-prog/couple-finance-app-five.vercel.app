@@ -7,6 +7,7 @@ import {
   getMyAccounts,
   getCards,
   getCardInvoicePayments,
+  getGoals,
 } from '@/lib/data'
 import { BrandMark } from '@/components/brand-mark'
 import { AccountSwitcher } from '@/components/account-switcher'
@@ -20,22 +21,29 @@ import {
   expenseByCategory,
   monthlySeries,
   openInvoicesByCard,
+  sumGoalsReserved,
 } from '@/lib/summary'
 import { currentMonthKey, formatCurrency, monthKey } from '@/lib/format'
 
 export default async function DashboardPage() {
   const { account } = await requireAccount()
-  const [transactions, categories, myAccounts, cards] = await Promise.all([
+  const [transactions, categories, myAccounts, cards, goals] = await Promise.all([
     getTransactions(account.id),
     getCategories(account.id),
     getMyAccounts(),
     getCards(account.id),
+    getGoals(account.id),
   ])
   const invoicePayments = await getCardInvoicePayments(cards.map((c) => c.id))
 
   // Saldo em conta real: compras no cartão de crédito não entram aqui até
   // a fatura ser paga (ver computeAccountBalance em lib/summary.ts).
-  const balance = computeAccountBalance(account.initial_balance, transactions)
+  const totalBalance = computeAccountBalance(account.initial_balance, transactions)
+  const goalsReserved = sumGoalsReserved(goals)
+  // Saldo disponível = o que sobra pra gastar livremente, descontando o
+  // que já está guardado dentro das metas. Nunca mostra negativo aqui
+  // (se as metas passarem do saldo total, o "disponível" só zera).
+  const availableBalance = Math.max(0, totalBalance - goalsReserved)
   const openInvoices = openInvoicesByCard(cards, transactions, invoicePayments)
   const totalOpenInvoices = openInvoices.reduce((acc, inv) => acc + inv.total, 0)
 
@@ -55,7 +63,9 @@ export default async function DashboardPage() {
 
       <BalanceCard
         accountName={account.name}
-        balance={balance}
+        totalBalance={totalBalance}
+        availableBalance={availableBalance}
+        goalsReserved={goalsReserved}
         monthIncome={monthIncome}
         monthExpense={monthExpense}
       />

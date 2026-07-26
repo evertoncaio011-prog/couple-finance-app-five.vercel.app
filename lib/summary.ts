@@ -1,5 +1,5 @@
 import { currentMonthKey, invoiceCompetencia, monthKey } from '@/lib/format'
-import type { Card, CardInvoice, CardInvoicePayment, TransactionWithMeta } from '@/lib/types'
+import type { Card, CardInvoice, CardInvoicePayment, Goal, TransactionWithMeta } from '@/lib/types'
 
 export interface Totals {
   income: number
@@ -164,4 +164,14 @@ export function openInvoicesByCard(
     result.push({ card, competencia, total, invoiceTotal, paidSoFar, paid: false })
   }
   return result.sort((a, b) => a.competencia.localeCompare(b.competencia))
+}
+
+/**
+ * Quanto do saldo em conta já está "reservado" nas metas — a soma de
+ * current_amount de todas as metas (concluídas ou não). É dinheiro que
+ * já está guardado na conta, mas com destino certo, então não deve
+ * contar como "saldo disponível" pra gastar.
+ */
+export function sumGoalsReserved(goals: Goal[]): number {
+  return goals.reduce((acc, g) => acc + Number(g.current_amount), 0)
 }

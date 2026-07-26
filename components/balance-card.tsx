@@ -40,7 +40,7 @@ export function BalanceCard({
         </span>
       </div>
 
-      <p className="mt-3 font-heading text-4xl font-extrabold tracking-tight text-primary tabular-nums">
+      <p className="mt-3 break-words font-heading text-3xl font-extrabold tracking-tight text-primary tabular-nums sm:text-4xl">
         {formatCurrency(availableBalance)}
       </p>
 
@@ -58,44 +58,44 @@ export function BalanceCard({
       </span>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-3 rounded-2xl bg-muted/60 p-3">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600"
-          >
-            <ArrowUpRight className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
+        <div className="flex flex-col gap-2 rounded-2xl bg-muted/60 p-3">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </span>
             <p className="text-xs text-muted-foreground">Receita (mês)</p>
-            <p className="truncate text-sm font-bold tabular-nums">
-              {formatCurrency(monthIncome)}
-            </p>
           </div>
+          <p className="break-words text-base font-bold tabular-nums leading-tight">
+            {formatCurrency(monthIncome)}
+          </p>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl bg-muted/60 p-3">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600"
-          >
-            <ArrowDownRight className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
+        <div className="flex flex-col gap-2 rounded-2xl bg-muted/60 p-3">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600"
+            >
+              <ArrowDownRight className="h-4 w-4" />
+            </span>
             <p className="text-xs text-muted-foreground">Gasto (mês)</p>
-            <p className="truncate text-sm font-bold tabular-nums">
-              {formatCurrency(monthExpense)}
-            </p>
           </div>
+          <p className="break-words text-base font-bold tabular-nums leading-tight">
+            {formatCurrency(monthExpense)}
+          </p>
         </div>
       </div>
 
       {goalsReserved > 0 && (
-        <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs">
+        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border pt-4 text-xs">
           <span className="text-muted-foreground">Reservado em metas</span>
           <span className="font-semibold tabular-nums">{formatCurrency(goalsReserved)}</span>
         </div>
       )}
 
-      <div className="mt-1.5 flex items-center justify-between text-xs">
+      <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
         <span className="text-muted-foreground">Saldo total (com metas)</span>
         <span className="font-semibold tabular-nums">{formatCurrency(totalBalance)}</span>
       </div>

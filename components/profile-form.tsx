@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { updateDisplayName, updatePassword } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 
 function SubmitButton() {
@@ -61,21 +62,25 @@ export function PasswordForm({ onSuccess }: { onSuccess?: () => void } = {}) {
     <form ref={formRef} action={formAction} className="flex flex-col gap-3">
       <div className="grid gap-2">
         <Label htmlFor="current_password">Senha atual</Label>
-        <Input
+        <PasswordInput
           id="current_password"
           name="current_password"
-          type="password"
           placeholder="Digite sua senha atual"
           required
         />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="password">Nova senha</Label>
-        <Input id="password" name="password" type="password" placeholder="Digite a nova senha" required />
+        <PasswordInput id="password" name="password" placeholder="Digite a nova senha" required />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="confirm_password">Confirmar senha</Label>
-        <Input id="confirm_password" name="confirm_password" type="password" placeholder="Repita a nova senha" required />
+        <PasswordInput
+          id="confirm_password"
+          name="confirm_password"
+          placeholder="Repita a nova senha"
+          required
+        />
       </div>
       <div className="flex justify-end">
         <SubmitButton />

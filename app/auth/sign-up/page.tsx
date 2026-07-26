@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { BrandMark } from '@/components/brand-mark'
 import Link from 'next/link'
@@ -106,9 +107,8 @@ export default function SignUpPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               required
               minLength={6}
@@ -118,9 +118,8 @@ export default function SignUpPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="repeat-password">Repita a senha</Label>
-            <Input
+            <PasswordInput
               id="repeat-password"
-              type="password"
               autoComplete="new-password"
               required
               minLength={6}

@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header'
 import { PasswordSheetRow } from '@/components/password-sheet'
 import { AccountSwitcher } from '@/components/account-switcher'
 import { PushButton } from '@/components/push-button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { LeaveAccountPermanentlyButton } from '@/components/leave-account-permanently-button'
 import { signOut } from '@/app/actions'
 
@@ -18,6 +19,13 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col gap-5 pb-10">
       <PageHeader title="Configurações" />
+
+      <section className="px-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-400 fill-mode-both">
+        <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">Aparência</p>
+        <div className="rounded-3xl border border-border bg-card p-4">
+          <ThemeToggle />
+        </div>
+      </section>
 
       <section className="px-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-400 fill-mode-both">
         <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">Conta</p>

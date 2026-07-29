@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronRight, Sparkles, TrendingUp, PieChart } from 'lucide-react'
+import { ChevronRight, Sparkles, TrendingUp, PieChart, Settings } from 'lucide-react'
 import {
   requireAccount,
   getTransactions,
@@ -44,6 +44,11 @@ export default async function DashboardPage() {
   // que já está guardado dentro das metas. Nunca mostra negativo aqui
   // (se as metas passarem do saldo total, o "disponível" só zera).
   const availableBalance = Math.max(0, totalBalance - goalsReserved)
+  // Progresso agregado de todas as metas juntas: quanto do valor-alvo
+  // total já foi guardado. Só usa dados que já buscamos (goals).
+  const goalsTarget = goals.reduce((acc, g) => acc + Number(g.target_amount), 0)
+  const goalsProgressPercent =
+    goalsTarget > 0 ? Math.min(100, (goalsReserved / goalsTarget) * 100) : 0
   const openInvoices = openInvoicesByCard(cards, transactions, invoicePayments)
   const totalOpenInvoices = openInvoices.reduce((acc, inv) => acc + inv.total, 0)
 
@@ -66,11 +71,16 @@ export default async function DashboardPage() {
             Acompanhem juntos as finanças de {account.name}.
           </p>
         </div>
-        {myAccounts.length > 1 && (
-          <div className="shrink-0 pt-1">
-            <AccountSwitcher accounts={myAccounts} />
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-2 pt-1">
+          {myAccounts.length > 1 && <AccountSwitcher accounts={myAccounts} />}
+          <Link
+            href="/settings"
+            aria-label="Configurações"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
       </header>
 
       <BalanceCard
@@ -78,6 +88,8 @@ export default async function DashboardPage() {
         totalBalance={totalBalance}
         availableBalance={availableBalance}
         goalsReserved={goalsReserved}
+        goalsProgressPercent={goalsProgressPercent}
+        hasGoals={goals.length > 0}
         monthIncome={monthIncome}
         monthExpense={monthExpense}
       />

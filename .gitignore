@@ -6,8 +6,11 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
-.env*.local
+# Environment variables — ignora QUALQUER .env (inclusive .env puro, que
+# antes escapava dessa regra), menos o .env.example que é só um molde.
+.env
+.env.*
+!.env.example
 
 # Common ignores
 node_modules

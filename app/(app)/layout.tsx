@@ -21,7 +21,7 @@ export default async function AppLayout({
       <DesktopSidebar />
 
       <div className="min-h-svh w-full lg:flex-1 lg:pl-64">
-        <div className="relative mx-auto min-h-svh w-full max-w-lg bg-background pb-24 lg:max-w-2xl lg:pb-10">
+        <div className="relative mx-auto min-h-svh w-full max-w-lg bg-background pb-24 lg:max-w-4xl lg:pb-10 xl:max-w-5xl 2xl:max-w-6xl">
           <NavDrawer />
           <PageTransition>{children}</PageTransition>
           <FloatingAddButton />

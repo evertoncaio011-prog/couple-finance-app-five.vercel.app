@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Pencil } from 'lucide-react'
 import { GoalProgressBar } from '@/components/goal-progress-bar'
 import { GoalSheet } from '@/components/goal-sheet'
 import { formatCurrency } from '@/lib/format'
@@ -40,13 +40,24 @@ export function GoalCard({ goal }: { goal: Goal }) {
               {formatCurrency(current)} de {formatCurrency(target)}
             </p>
           </div>
-          <span className="shrink-0 text-sm font-bold tabular-nums">{percent.toFixed(0)}%</span>
+          <span className="flex shrink-0 items-center gap-1.5">
+            <span className="text-sm font-bold tabular-nums">{percent.toFixed(0)}%</span>
+            <Pencil
+              className="h-3.5 w-3.5 text-muted-foreground/60"
+              aria-hidden
+            />
+          </span>
         </div>
 
         <GoalProgressBar percent={percent} color={goal.color} />
 
-        <p className="text-xs text-muted-foreground">
-          {isComplete ? 'Meta concluída! 🎉' : `Falta ${formatCurrency(remaining)}`}
+        <p className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className="min-w-0 truncate">
+            {isComplete ? 'Meta concluída! 🎉' : `Falta ${formatCurrency(remaining)}`}
+          </span>
+          <span className="shrink-0 whitespace-nowrap text-muted-foreground/60">
+            Toque para editar
+          </span>
         </p>
       </button>
 

@@ -23,7 +23,7 @@ import {
   openInvoicesByCard,
   sumGoalsReserved,
 } from '@/lib/summary'
-import { currentMonthKey, formatCurrency, monthKey } from '@/lib/format'
+import { currentMonthKey, formatCurrency, monthKey, monthLabel } from '@/lib/format'
 
 export default async function DashboardPage() {
   const { account, profile } = await requireAccount()
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <header className="flex items-start justify-between gap-3 py-1 pr-5 pl-16 pt-6 lg:pl-5">
+      <header className="flex items-start justify-between gap-3 py-1 pr-5 pl-16 pt-6 lg:pl-8 lg:pr-8">
         <div className="min-w-0">
           <h1 className="font-heading text-2xl font-extrabold tracking-tight lg:text-3xl">
             Olá, {firstName}!
@@ -83,95 +83,106 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <BalanceCard
-        accountName={account.name}
-        totalBalance={totalBalance}
-        availableBalance={availableBalance}
-        goalsReserved={goalsReserved}
-        goalsProgressPercent={goalsProgressPercent}
-        hasGoals={goals.length > 0}
-        monthIncome={monthIncome}
-        monthExpense={monthExpense}
-      />
+      {/* No celular tudo empilha numa coluna só, como sempre foi.
+          A partir de lg, vira duas colunas pra aproveitar telas largas:
+          saldo + gráficos à esquerda (mais espaço), atalhos + atividade
+          recente à direita, sem tirar nem esconder nada do mobile. */}
+      <div className="flex flex-col gap-6 px-5 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6 lg:px-8">
+        <div className="flex flex-col gap-6 lg:col-span-3">
+          <BalanceCard
+            accountName={account.name}
+            totalBalance={totalBalance}
+            availableBalance={availableBalance}
+            goalsReserved={goalsReserved}
+            goalsProgressPercent={goalsProgressPercent}
+            hasGoals={goals.length > 0}
+            monthIncome={monthIncome}
+            monthExpense={monthExpense}
+            currentMonthLabel={monthLabel(currentMonthKey())}
+          />
 
-      {cards.length > 0 && (
-        <InvoicesCard total={totalOpenInvoices} invoices={openInvoices} />
-      )}
+          {cards.length > 0 && (
+            <InvoicesCard total={totalOpenInvoices} invoices={openInvoices} />
+          )}
 
-      <DashboardShortcuts />
-
-      <section className="mx-5 rounded-3xl border border-border bg-card p-5">
-        <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
-          <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
-          Últimos 6 meses
-        </h2>
-        <div className="mt-4">
-          <IncomeExpenseChart data={series} />
-        </div>
-      </section>
-
-      <section className="mx-5 rounded-3xl border border-border bg-card p-5">
-        <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
-          <PieChart className="h-4 w-4 text-primary" aria-hidden />
-          Este mês por categoria
-        </h2>
-        {categorySlices.length === 0 ? (
-          <p className="mt-6 py-6 text-center text-sm text-muted-foreground">
-            Nenhum gasto registrado este mês ainda.
-          </p>
-        ) : (
-          <>
-            <div className="mt-2">
-              <CategoryDonut data={categorySlices} />
+          <section className="rounded-3xl border border-border bg-card p-5">
+            <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
+              <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
+              Últimos 6 meses
+            </h2>
+            <div className="mt-4">
+              <IncomeExpenseChart data={series} />
             </div>
-            <ul className="mt-4 space-y-2">
-              {categorySlices.map((slice) => (
-                <li key={slice.id} className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <span
-                      aria-hidden
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: slice.color }}
-                    />
-                    {slice.name}
-                  </span>
-                  <span className="font-medium tabular-nums">
-                    {formatCurrency(slice.value)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
-
-      <section className="mx-5 overflow-hidden rounded-3xl border border-border bg-card">
-        <div className="flex items-center justify-between px-5 pt-5">
-          <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
-            <Sparkles className="h-4 w-4 text-primary" aria-hidden />
-            Atividade recente
-          </h2>
-          <Link
-            href="/transactions"
-            className="flex items-center gap-0.5 text-sm font-medium text-primary transition-opacity hover:opacity-80"
-          >
-            Ver tudo
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </Link>
+          </section>
         </div>
 
-        {recent.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-            Nenhuma transação registrada ainda.
-          </p>
-        ) : (
-          <div className="mt-3 divide-y divide-border">
-            {recent.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} categories={categories} cards={cards} />
-            ))}
-          </div>
-        )}
-      </section>
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <DashboardShortcuts />
+
+          <section className="rounded-3xl border border-border bg-card p-5">
+            <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
+              <PieChart className="h-4 w-4 text-primary" aria-hidden />
+              Este mês por categoria
+            </h2>
+            {categorySlices.length === 0 ? (
+              <p className="mt-6 py-6 text-center text-sm text-muted-foreground">
+                Nenhum gasto registrado este mês ainda.
+              </p>
+            ) : (
+              <>
+                <div className="mt-2">
+                  <CategoryDonut data={categorySlices} />
+                </div>
+                <ul className="mt-4 space-y-2">
+                  {categorySlices.map((slice) => (
+                    <li key={slice.id} className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: slice.color }}
+                        />
+                        {slice.name}
+                      </span>
+                      <span className="font-medium tabular-nums">
+                        {formatCurrency(slice.value)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">
+                <Sparkles className="h-4 w-4 text-primary" aria-hidden />
+                Atividade recente
+              </h2>
+              <Link
+                href="/transactions"
+                className="flex items-center gap-0.5 text-sm font-medium text-primary transition-opacity hover:opacity-80"
+              >
+                Ver tudo
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+
+            {recent.length === 0 ? (
+              <p className="mt-3 rounded-2xl border border-border bg-card px-5 py-10 text-center text-sm text-muted-foreground">
+                Nenhuma transação registrada ainda.
+              </p>
+            ) : (
+              <div className="mt-3 flex flex-col gap-2">
+                {recent.map((tx) => (
+                  <TransactionRow key={tx.id} tx={tx} categories={categories} cards={cards} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   )
 }

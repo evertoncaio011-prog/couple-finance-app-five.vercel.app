@@ -48,7 +48,7 @@ export default async function TransactionsPage({
         subtitle={`${filtered.length} de ${txs.length} lançamentos`}
       />
 
-      <div className="px-5">
+      <div className="px-5 lg:mx-auto lg:w-full lg:max-w-2xl lg:px-8">
         <TransactionFilters months={months} categories={categories} />
       </div>
 
@@ -57,7 +57,7 @@ export default async function TransactionsPage({
           Nenhuma transação corresponde a esses filtros.
         </p>
       ) : (
-        <div className="flex flex-col gap-5">
+        <div className="mx-auto flex w-full flex-col gap-5 lg:max-w-2xl">
           {Array.from(groups.entries()).map(([key, items], groupIndex) => (
             <section
               key={key}
@@ -67,19 +67,16 @@ export default async function TransactionsPage({
               <h2 className="px-5 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {monthLabel(key)}
               </h2>
-              <div className="mx-4 overflow-hidden rounded-2xl border border-border bg-card">
-                <ul className="divide-y divide-border">
-                  {items.map((tx) => (
-                    <li key={tx.id}>
-                      <TransactionRow
-                        tx={tx}
-                        categories={categories}
-                        cards={cards}
-                        onDelete={deleteTransaction.bind(null, tx.id)}
-                      />
-                    </li>
-                  ))}
-                </ul>
+              <div className="mx-4 flex flex-col gap-2">
+                {items.map((tx) => (
+                  <TransactionRow
+                    key={tx.id}
+                    tx={tx}
+                    categories={categories}
+                    cards={cards}
+                    onDelete={deleteTransaction.bind(null, tx.id)}
+                  />
+                ))}
               </div>
             </section>
           ))}

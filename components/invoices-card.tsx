@@ -13,7 +13,7 @@ export function InvoicesCard({
   return (
     <Link
       href="/cards"
-      className="mx-5 flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 transition-shadow hover:shadow-sm"
+      className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 transition-shadow hover:shadow-sm"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-muted-foreground">

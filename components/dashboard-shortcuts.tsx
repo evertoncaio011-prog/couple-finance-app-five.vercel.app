@@ -20,7 +20,7 @@ const items = [
 
 export function DashboardShortcuts() {
   return (
-    <section className="px-5">
+    <section>
       <h2 className="font-heading text-base font-semibold">Painel financeiro</h2>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {items.map(({ href, label, subtitle, icon: Icon, iconBg }) => (

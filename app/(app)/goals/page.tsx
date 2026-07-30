@@ -1,6 +1,6 @@
 import { requireAccount, getGoals } from '@/lib/data'
 import { PageHeader } from '@/components/page-header'
-import { GoalForm } from '@/components/goal-form'
+import { AddGoalSheet } from '@/components/add-goal-sheet'
 import { GoalCard } from '@/components/goal-card'
 
 export default async function GoalsPage() {
@@ -11,12 +11,12 @@ export default async function GoalsPage() {
     <div className="flex flex-col gap-6 pb-10">
       <PageHeader title="Metas" subtitle="Guardem juntos para o que importa." />
 
-      {/* No celular o formulário fica em cima da lista, empilhado. No
-          desktop os dois ficam lado a lado: formulário fixo à esquerda,
-          metas em grid à direita, aproveitando a tela larga. */}
+      {/* No celular o botão de adicionar fica em cima da lista. No
+          desktop os dois ficam lado a lado: botão fixo à esquerda, metas
+          em grid à direita, aproveitando a tela larga. */}
       <div className="flex flex-col gap-6 px-5 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6 lg:px-8">
         <section className="lg:sticky lg:top-6 lg:col-span-2">
-          <GoalForm />
+          <AddGoalSheet />
         </section>
 
         <section className="flex flex-col gap-3 lg:col-span-3">

@@ -20,7 +20,7 @@ function SubmitButton() {
 
 const DEFAULT_COLOR = '#0ea5e9'
 
-export function GoalForm() {
+export function GoalForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const [state, formAction] = useActionState(addGoal, {})
   const [color, setColor] = useState(DEFAULT_COLOR)
   const formRef = useRef<HTMLFormElement>(null)
@@ -30,14 +30,16 @@ export function GoalForm() {
       toast.success('Meta criada!')
       formRef.current?.reset()
       setColor(DEFAULT_COLOR)
+      onSuccess?.()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.success])
 
   return (
     <form
       ref={formRef}
       action={formAction}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-sm"
+      className="flex flex-col gap-4"
     >
       <div className="grid gap-2">
         <Label htmlFor="goal-name">Nome</Label>

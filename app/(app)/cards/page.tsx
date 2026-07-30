@@ -1,6 +1,6 @@
 import { requireAccount, getTransactions, getCards, getCardInvoicePayments } from '@/lib/data'
 import { PageHeader } from '@/components/page-header'
-import { CardForm } from '@/components/card-form'
+import { AddCardSheet } from '@/components/add-card-sheet'
 import { CardListItem } from '@/components/card-list-item'
 import { openInvoicesByCard } from '@/lib/summary'
 import { invoiceCompetencia } from '@/lib/format'
@@ -23,10 +23,11 @@ export default async function CardsPage() {
       />
 
       {/* Igual ao padrão da tela de Metas: no celular empilha, no
-          desktop o formulário fica fixo à esquerda e a lista à direita. */}
+          desktop o botão de adicionar fica fixo à esquerda e a lista à
+          direita. */}
       <div className="flex flex-col gap-6 px-5 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6 lg:px-8">
         <section className="lg:sticky lg:top-6 lg:col-span-2">
-          <CardForm />
+          <AddCardSheet />
         </section>
 
         <section className="lg:col-span-3">

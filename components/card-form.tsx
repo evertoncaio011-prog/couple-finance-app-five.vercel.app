@@ -19,7 +19,7 @@ function SubmitButton() {
 
 const DEFAULT_COLOR = '#7c3aed'
 
-export function CardForm() {
+export function CardForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const [state, formAction] = useActionState(addCard, {})
   const [color, setColor] = useState(DEFAULT_COLOR)
   const formRef = useRef<HTMLFormElement>(null)
@@ -29,14 +29,16 @@ export function CardForm() {
       toast.success('Cartão adicionado!')
       formRef.current?.reset()
       setColor(DEFAULT_COLOR)
+      onSuccess?.()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.success])
 
   return (
     <form
       ref={formRef}
       action={formAction}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-sm"
+      className="flex flex-col gap-4"
     >
       <div className="grid gap-2">
         <Label htmlFor="card-name">Nome</Label>

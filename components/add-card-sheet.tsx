@@ -19,10 +19,15 @@ export function AddCardSheet() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card/50 p-5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm"
       >
-        <Plus className="h-4 w-4" aria-hidden />
-        Adicionar cartão
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+          <Plus className="h-5 w-5" aria-hidden />
+        </span>
+        <span>
+          <p className="font-heading font-semibold">Adicionar cartão</p>
+          <p className="text-sm text-muted-foreground">Cadastre um cartão de crédito</p>
+        </span>
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>

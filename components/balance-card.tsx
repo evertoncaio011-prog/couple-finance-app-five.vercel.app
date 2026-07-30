@@ -64,7 +64,7 @@ export function BalanceCard({
           ) : (
             <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
           )}
-          {isHealthy ? 'Saudável' : 'Atenção'}
+          {isHealthy ? 'Saudável' : 'Mês no vermelho'}
         </span>
       </div>
 

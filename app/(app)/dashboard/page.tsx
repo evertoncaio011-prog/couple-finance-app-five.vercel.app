@@ -23,7 +23,7 @@ import {
   openInvoicesByCard,
   sumGoalsReserved,
 } from '@/lib/summary'
-import { currentMonthKey, formatCurrency, monthKey, monthLabel } from '@/lib/format'
+import { currentMonthKey, formatCurrency, monthKey } from '@/lib/format'
 
 export default async function DashboardPage() {
   const { account, profile } = await requireAccount()
@@ -98,7 +98,6 @@ export default async function DashboardPage() {
             hasGoals={goals.length > 0}
             monthIncome={monthIncome}
             monthExpense={monthExpense}
-            currentMonthLabel={monthLabel(currentMonthKey())}
           />
 
           {cards.length > 0 && (

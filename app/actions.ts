@@ -225,6 +225,46 @@ export async function addCard(_prev: ActionResult, formData: FormData): Promise<
   return { success: true }
 }
 
+export async function updateCard(
+  id: string,
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const { account } = await getSessionContext()
+  if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  const supabase = await createClient()
+  const name = String(formData.get('name') ?? '').trim()
+  const creditLimit = Number(formData.get('credit_limit') ?? 0)
+  const closingDay = Number(formData.get('closing_day') ?? 0)
+  const dueDay = Number(formData.get('due_day') ?? 0)
+  const color = String(formData.get('color') ?? '#7c3aed')
+
+  if (!name) return { error: 'Dê um nome ao cartão.' }
+  if (!Number.isInteger(closingDay) || closingDay < 1 || closingDay > 28) {
+    return { error: 'Dia de fechamento deve ser entre 1 e 28.' }
+  }
+  if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 28) {
+    return { error: 'Dia de vencimento deve ser entre 1 e 28.' }
+  }
+
+  const { error } = await supabase
+    .from('cards')
+    .update({
+      name,
+      credit_limit: Number.isFinite(creditLimit) ? creditLimit : 0,
+      closing_day: closingDay,
+      due_day: dueDay,
+      color,
+    })
+    .eq('id', id)
+    .eq('account_id', account.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/cards')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function deleteCard(id: string): Promise<ActionResult> {
   const { account } = await getSessionContext()
   if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }

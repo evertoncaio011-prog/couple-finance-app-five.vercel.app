@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { formatCurrency, formatDateShort } from '@/lib/format'
 import type { Card, Category, TransactionWithMeta } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -57,7 +58,10 @@ export function TransactionRow({
               {isOutgoing ? '−' : '+'}
               {formatCurrency(Number(tx.amount))}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{formatDateShort(tx.date)}</p>
+            <p className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+              {formatDateShort(tx.date)}
+              <Pencil className="h-3 w-3 text-muted-foreground/60" aria-hidden />
+            </p>
           </div>
         </div>
       </button>

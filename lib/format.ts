@@ -49,7 +49,20 @@ export function todayISO(): string {
  * near midnight. Always derive "today" from `todayISO()` instead.
  */
 export function currentMonthKey(): string {
-  return monthKey(todayISO())
+  // Esta função também roda no servidor da Vercel, que usa UTC. Sem um
+  // fuso explícito, após 21h no Ceará o servidor já considera o mês
+  // seguinte e o resumo mensal fica zerado. O app usa Fortaleza como
+  // referência para os lançamentos e para o fechamento do mês.
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Fortaleza',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date())
+
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+
+  return year && month ? `${year}-${month}` : monthKey(todayISO())
 }
 
 /**

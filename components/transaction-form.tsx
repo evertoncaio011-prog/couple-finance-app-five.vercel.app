@@ -2,12 +2,13 @@
 
 import { useActionState, useEffect, useMemo, useState } from 'react'
 import { useFormStatus } from 'react-dom'
+import { Wallet } from 'lucide-react'
 import { addTransaction, updateTransaction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { todayISO } from '@/lib/format'
+import { formatCurrency, todayISO } from '@/lib/format'
 import type { Card, Category, TransactionWithMeta, TxType } from '@/lib/types'
 
 const selectClass =
@@ -29,6 +30,11 @@ interface TransactionFormProps {
   transaction?: TransactionWithMeta
   onSuccess?: () => void
   initialDate?: string
+  /** Saldo individual de quem está lançando (só receitas/despesas dessa
+   * pessoa — ver computeUserBalance em lib/summary.ts). Só passado na
+   * tela de criar transação; sem isso, o card/prévia de saldo não
+   * aparece. */
+  userBalance?: number
 }
 
 export function TransactionForm({
@@ -38,6 +44,7 @@ export function TransactionForm({
   transaction,
   onSuccess,
   initialDate,
+  userBalance,
 }: TransactionFormProps) {
   const isEdit = mode === 'edit' && !!transaction
   // Transação gerada automaticamente pelo pagamento de uma fatura: tipo e
@@ -54,6 +61,9 @@ export function TransactionForm({
     transaction?.card_id ? 'credit' : 'cash',
   )
   const [cardId, setCardId] = useState(transaction?.card_id ?? cards[0]?.id ?? '')
+  const [amountInput, setAmountInput] = useState(
+    transaction ? String(Number(transaction.amount)) : '',
+  )
 
   useEffect(() => {
     if (isEdit && state.success) {
@@ -68,11 +78,40 @@ export function TransactionForm({
     return (categories ?? []).filter((c) => c.type === type || c.type === 'both')
   }, [categories, type])
 
+  const parsedAmount = Number(amountInput.replace(',', '.'))
+  const showBalancePreview =
+    mode === 'create' &&
+    userBalance !== undefined &&
+    type === 'expense' &&
+    amountInput.trim() !== '' &&
+    Number.isFinite(parsedAmount) &&
+    parsedAmount > 0
+  // No crédito a compra entra na fatura, não no saldo — só o "à vista"
+  // desconta agora (mesma regra de computeAccountBalance).
+  const affectsBalanceNow = paymentMethod === 'cash'
+  const projectedBalance = showBalancePreview
+    ? (userBalance ?? 0) - (affectsBalanceNow ? parsedAmount : 0)
+    : (userBalance ?? 0)
+
   return (
     <form action={formAction} className="flex flex-col gap-5 px-5">
       <input type="hidden" name="type" value={type} readOnly />
       <input type="hidden" name="payment_method" value={paymentMethod} readOnly />
       <input type="hidden" name="card_id" value={paymentMethod === 'credit' ? cardId : ''} readOnly />
+
+      {mode === 'create' && userBalance !== undefined && (
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <Wallet className="h-4 w-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Seu saldo disponível</p>
+            <p className="font-heading text-lg font-bold tabular-nums">
+              {formatCurrency(userBalance)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {isLockedInvoicePayment ? (
         <div className="rounded-2xl bg-muted p-3 text-center text-sm font-semibold text-muted-foreground">
@@ -211,9 +250,42 @@ export function TransactionForm({
           placeholder="0,00"
           required
           autoFocus={!isEdit}
-          defaultValue={transaction ? Number(transaction.amount) : undefined}
+          value={amountInput}
+          onChange={(e) => setAmountInput(e.target.value)}
         />
       </div>
+
+      {showBalancePreview && (
+        <div className="flex flex-col gap-1.5 rounded-2xl bg-muted p-4 text-sm animate-in fade-in-0 slide-in-from-top-1">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Saldo atual</span>
+            <span className="font-medium tabular-nums">{formatCurrency(userBalance!)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Valor da despesa</span>
+            <span className="font-medium tabular-nums text-rose-600">
+              − {formatCurrency(parsedAmount)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-1.5">
+            <span className="font-semibold">Saldo após salvar</span>
+            <span
+              className={cn(
+                'font-bold tabular-nums',
+                projectedBalance < 0 ? 'text-rose-600' : 'text-foreground',
+              )}
+            >
+              {formatCurrency(projectedBalance)}
+            </span>
+          </div>
+          {!affectsBalanceNow && (
+            <p className="pt-1 text-xs text-muted-foreground">
+              Como é no cartão de crédito, isso ainda não desconta do saldo —
+              só entra na fatura.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-2">
         <Label htmlFor="category_id">

@@ -51,6 +51,21 @@ export function computeAccountBalance(
   )
 }
 
+/**
+ * Saldo disponível individual: só as receitas e despesas lançadas por
+ * esse usuário específico, sem misturar com o que o outro membro do
+ * casal lançou. Segue as mesmas regras do saldo da conta (compras no
+ * cartão não descontam até a fatura ser paga, "Outros" nunca afeta,
+ * `affects_balance: false` é ignorado) — só que sem saldo inicial, já
+ * que esse valor pertence à conta como um todo, não a uma pessoa.
+ */
+export function computeUserBalance(txs: TransactionWithMeta[], userId: string): number {
+  return computeAccountBalance(
+    0,
+    txs.filter((t) => t.user_id === userId),
+  )
+}
+
 export function currentMonthTotals(
   txs: TransactionWithMeta[],
   key = currentMonthKey(),

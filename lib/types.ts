@@ -131,3 +131,26 @@ export interface Goal {
   completed_at: string | null
   created_at: string
 }
+
+/** Assinatura Stripe do orçamento (um casal = uma assinatura). Espelha o
+ * status real do Stripe; atualizada só pelo webhook, nunca pelo cliente. */
+export interface Subscription {
+  id: string
+  account_id: string
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  status:
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'unpaid'
+    | null
+  plan: string
+  current_period_end: string | null
+  cancel_at_period_end: boolean
+  created_at: string
+  updated_at: string
+}

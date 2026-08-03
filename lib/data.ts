@@ -8,6 +8,7 @@ import type {
   MyAccount,
   Profile,
   SharedAccount,
+  Subscription,
   TransactionWithMeta,
 } from '@/lib/types'
 
@@ -173,4 +174,19 @@ export async function getGoals(accountId: string): Promise<Goal[]> {
     return []
   }
   return (data as Goal[]) ?? []
+}
+
+export async function getSubscription(accountId: string): Promise<Subscription | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('account_id', accountId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Falha ao carregar assinatura:', error.message)
+    return null
+  }
+  return (data as Subscription | null) ?? null
 }

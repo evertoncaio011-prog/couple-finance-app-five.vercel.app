@@ -360,6 +360,7 @@ export async function addGoal(_prev: ActionResult, formData: FormData): Promise<
     description: description || null,
     target_amount: targetAmount,
     color,
+    contributions: {},
   })
   if (error) return { error: error.message }
   revalidatePath('/goals')
@@ -424,8 +425,8 @@ export async function deleteGoal(id: string): Promise<ActionResult> {
 // automaticamente quando o total atinge (ou passa) o valor alvo, e limpa de
 // volta para null se, por algum motivo, o valor cair abaixo dele de novo.
 export async function addGoalAmount(id: string, amount: number): Promise<ActionResult> {
-  const { account } = await getSessionContext()
-  if (!account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  const { account, user } = await getSessionContext()
+  if (!account || !user) return { error: 'Nenhum orçamento compartilhado encontrado.' }
   if (!Number.isFinite(amount) || amount <= 0) {
     return { error: 'Informe um valor maior que zero.' }
   }
@@ -433,21 +434,30 @@ export async function addGoalAmount(id: string, amount: number): Promise<ActionR
 
   const { data: goal, error: fetchError } = await supabase
     .from('goals')
-    .select('current_amount, target_amount')
+    .select('current_amount, target_amount, contributions')
     .eq('id', id)
     .eq('account_id', account.id)
-    .single<{ current_amount: number; target_amount: number }>()
+    .single<{
+      current_amount: number
+      target_amount: number
+      contributions: Record<string, number> | null
+    }>()
 
   if (fetchError || !goal) return { error: 'Meta não encontrada.' }
 
   const newAmount = Number(goal.current_amount) + amount
   const isComplete = newAmount >= Number(goal.target_amount)
+  const nextContributions = {
+    ...(goal.contributions ?? {}),
+    [user.id]: Number(goal.contributions?.[user.id] ?? 0) + amount,
+  }
 
   const { error } = await supabase
     .from('goals')
     .update({
       current_amount: newAmount,
       completed_at: isComplete ? new Date().toISOString() : null,
+      contributions: nextContributions,
     })
     .eq('id', id)
     .eq('account_id', account.id)

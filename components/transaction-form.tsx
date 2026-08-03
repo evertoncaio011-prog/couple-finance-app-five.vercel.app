@@ -109,6 +109,9 @@ export function TransactionForm({
             <p className="font-heading text-lg font-bold tabular-nums">
               {formatCurrency(userBalance)}
             </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Considera a sua parte das metas já reservadas.
+            </p>
           </div>
         </div>
       )}

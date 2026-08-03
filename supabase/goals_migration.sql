@@ -12,6 +12,7 @@ create table if not exists public.goals (
   target_amount numeric(14,2) not null check (target_amount > 0),
   current_amount numeric(14,2) not null default 0 check (current_amount >= 0),
   color text not null default '#0ea5e9',
+  contributions jsonb not null default '{}'::jsonb,
   -- Preenchido automaticamente quando current_amount atinge target_amount
   -- (ver addGoalAmount/updateGoal em app/actions.ts). Null = ainda em aberto.
   completed_at timestamptz,
@@ -21,6 +22,7 @@ create table if not exists public.goals (
 -- Caso a tabela já exista de uma execução anterior deste script (sem a
 -- coluna description), esta linha adiciona a coluna sem apagar nada.
 alter table public.goals add column if not exists description text;
+alter table public.goals add column if not exists contributions jsonb not null default '{}'::jsonb;
 
 create index if not exists idx_goals_account on public.goals (account_id);
 

@@ -66,7 +66,7 @@ export default async function DashboardPage() {
 
   // Saldo individual (só o que essa pessoa lançou) para o "Conferir
   // saldo" — ver computeUserBalance em lib/summary.ts.
-  const userBalance = computeUserBalance(transactions, user.id, balanceAdjustment)
+  const userBalance = computeUserBalance(transactions, user.id, balanceAdjustment, goals)
   const userMonthIncome = transactions
     .filter(
       (t) => t.user_id === user.id && t.type === 'income' && monthKey(t.date) === currentMonthKey(),

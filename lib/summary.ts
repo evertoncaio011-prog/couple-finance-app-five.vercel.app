@@ -63,17 +63,47 @@ export function computeAccountBalance(
  * balance_adjustment em account_members) — soma direto, sem passar pelas
  * regras acima, porque representa uma correção já conferida à mão.
  */
+function normalizeGoalContributions(contributions?: Record<string, number> | null): Record<string, number> {
+  if (!contributions || typeof contributions !== 'object') return {}
+  return Object.fromEntries(
+    Object.entries(contributions).filter(([, amount]) => Number(amount) > 0),
+  )
+}
+
+export function computeUserGoalReservation(goals: Goal[], userId: string): number {
+  return goals.reduce((acc, goal) => {
+    const reserved = Number(goal.current_amount ?? 0)
+    if (reserved <= 0) return acc
+
+    const contributions = normalizeGoalContributions(goal.contributions)
+    const totalContribution = Object.values(contributions).reduce(
+      (sum, amount) => sum + Number(amount),
+      0,
+    )
+
+    if (totalContribution > 0) {
+      const userContribution = Number(contributions[userId] ?? 0)
+      return acc + (userContribution / totalContribution) * reserved
+    }
+
+    // Para metas antigas sem histórico de contribuições, divide igualmente.
+    return acc + reserved / 2
+  }, 0)
+}
+
 export function computeUserBalance(
   txs: TransactionWithMeta[],
   userId: string,
   adjustment = 0,
+  goals: Goal[] = [],
 ): number {
-  return (
+  const baseBalance =
     computeAccountBalance(
       0,
       txs.filter((t) => t.user_id === userId),
     ) + Number(adjustment)
-  )
+
+  return baseBalance - computeUserGoalReservation(goals, userId)
 }
 
 export function currentMonthTotals(

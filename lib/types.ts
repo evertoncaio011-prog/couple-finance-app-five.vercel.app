@@ -127,6 +127,8 @@ export interface Goal {
   target_amount: number
   current_amount: number
   color: string
+  /** Mapeamento de contribuições por usuário para a meta, em formato { [userId]: amount }. */
+  contributions?: Record<string, number> | null
   /** Preenchido automaticamente quando current_amount atinge target_amount. */
   completed_at: string | null
   created_at: string

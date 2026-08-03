@@ -190,3 +190,21 @@ export async function getSubscription(accountId: string): Promise<Subscription |
   }
   return (data as Subscription | null) ?? null
 }
+
+/** Ajuste manual do saldo individual dessa pessoa nesse orçamento — ver
+ * balance_adjustment_migration.sql e computeUserBalance em lib/summary.ts. */
+export async function getBalanceAdjustment(accountId: string, userId: string): Promise<number> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('account_members')
+    .select('balance_adjustment')
+    .eq('account_id', accountId)
+    .eq('user_id', userId)
+    .maybeSingle<{ balance_adjustment: number }>()
+
+  if (error) {
+    console.error('Falha ao carregar ajuste de saldo:', error.message)
+    return 0
+  }
+  return Number(data?.balance_adjustment ?? 0)
+}

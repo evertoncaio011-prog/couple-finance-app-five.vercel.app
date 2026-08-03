@@ -8,15 +8,18 @@ import {
   getCards,
   getCardInvoicePayments,
   getGoals,
+  getBalanceAdjustment,
 } from '@/lib/data'
 import { AccountSwitcher } from '@/components/account-switcher'
 import { BalanceCard } from '@/components/balance-card'
 import { DashboardShortcuts } from '@/components/dashboard-shortcuts'
+import { BalanceCheckButton } from '@/components/balance-check-sheet'
 import { InvoicesCard } from '@/components/invoices-card'
 import { IncomeExpenseChart, CategoryDonut } from '@/components/spending-charts'
 import { TransactionRow } from '@/components/transaction-row'
 import {
   computeAccountBalance,
+  computeUserBalance,
   currentMonthTotals,
   expenseByCategory,
   monthlySeries,
@@ -26,13 +29,14 @@ import {
 import { currentMonthKey, formatCurrency, monthKey } from '@/lib/format'
 
 export default async function DashboardPage() {
-  const { account, profile } = await requireAccount()
-  const [transactions, categories, myAccounts, cards, goals] = await Promise.all([
+  const { account, profile, user } = await requireAccount()
+  const [transactions, categories, myAccounts, cards, goals, balanceAdjustment] = await Promise.all([
     getTransactions(account.id),
     getCategories(account.id),
     getMyAccounts(),
     getCards(account.id),
     getGoals(account.id),
+    getBalanceAdjustment(account.id, user.id),
   ])
   const invoicePayments = await getCardInvoicePayments(cards.map((c) => c.id))
 
@@ -59,6 +63,15 @@ export default async function DashboardPage() {
   )
   const recent = transactions.slice(0, 3)
   const firstName = profile.display_name?.trim().split(' ')[0] || 'você'
+
+  // Saldo individual (só o que essa pessoa lançou) para o "Conferir
+  // saldo" — ver computeUserBalance em lib/summary.ts.
+  const userBalance = computeUserBalance(transactions, user.id, balanceAdjustment)
+  const userMonthIncome = transactions
+    .filter(
+      (t) => t.user_id === user.id && t.type === 'income' && monthKey(t.date) === currentMonthKey(),
+    )
+    .reduce((acc, t) => acc + Number(t.amount), 0)
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -99,6 +112,8 @@ export default async function DashboardPage() {
             monthIncome={monthIncome}
             monthExpense={monthExpense}
           />
+
+          <BalanceCheckButton userBalance={userBalance} registeredMonthIncome={userMonthIncome} />
 
           {cards.length > 0 && (
             <InvoicesCard total={totalOpenInvoices} invoices={openInvoices} />

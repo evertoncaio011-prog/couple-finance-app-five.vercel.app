@@ -1,38 +1,33 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import 'server-only'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 /**
- * Lista de e-mails com acesso ao painel /admin, via variável de ambiente
- * (nunca hardcoded no código, pra não precisar de deploy pra trocar quem
- * é admin). Aceita um ou mais e-mails separados por vírgula:
- *   ADMIN_EMAILS=voce@example.com,parceiro@example.com
+ * Cliente Supabase com a service_role key — contorna TODAS as políticas de
+ * RLS. NUNCA importe isso em um componente cliente ('use client') ou
+ * exponha o resultado de uma chamada feita com ele diretamente para o
+ * navegador sem antes filtrar os dados.
+ *
+ * Uso permitido apenas em:
+ * 1. Rotas de servidor que verificam autorização antes de usar (ex.: o
+ *    webhook do Stripe, que valida a assinatura do evento).
+ * 2. Páginas/ações do painel admin, que já checam requireAdmin() antes.
+ *
+ * O pacote "server-only" faz o build falhar se este arquivo acabar sendo
+ * importado, direta ou indiretamente, por código que roda no navegador.
  */
-function getAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-}
+export function createAdminClient() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+    'https://your-project-ref.supabase.co'
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false
-  return getAdminEmails().includes(email.toLowerCase())
-}
-
-/**
- * Guard de página: redireciona pra fora do /admin se a pessoa não estiver
- * logada ou não estiver na lista de ADMIN_EMAILS. Chame no topo de toda
- * page.tsx dentro de app/admin/.
- */
-export async function requireAdmin() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user || !isAdminEmail(user.email)) {
-    redirect('/dashboard')
+  if (!serviceRoleKey) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY não configurada. Pegue a chave "service_role" em Supabase > Project Settings > API e adicione ao seu .env.local (nunca ao NEXT_PUBLIC_*, e nunca commitada).',
+    )
   }
 
-  return { user }
+  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }

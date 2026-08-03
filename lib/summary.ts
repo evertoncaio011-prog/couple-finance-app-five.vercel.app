@@ -58,11 +58,21 @@ export function computeAccountBalance(
  * cartão não descontam até a fatura ser paga, "Outros" nunca afeta,
  * `affects_balance: false` é ignorado) — só que sem saldo inicial, já
  * que esse valor pertence à conta como um todo, não a uma pessoa.
+ *
+ * `adjustment` é o ajuste manual dessa pessoa (ver "Conferir saldo" e
+ * balance_adjustment em account_members) — soma direto, sem passar pelas
+ * regras acima, porque representa uma correção já conferida à mão.
  */
-export function computeUserBalance(txs: TransactionWithMeta[], userId: string): number {
-  return computeAccountBalance(
-    0,
-    txs.filter((t) => t.user_id === userId),
+export function computeUserBalance(
+  txs: TransactionWithMeta[],
+  userId: string,
+  adjustment = 0,
+): number {
+  return (
+    computeAccountBalance(
+      0,
+      txs.filter((t) => t.user_id === userId),
+    ) + Number(adjustment)
   )
 }
 

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionContext } from '@/lib/data'
+import { todayISO } from '@/lib/format'
 
 type ActionResult = { error?: string; success?: boolean; data?: unknown }
 
@@ -453,6 +454,72 @@ export async function addGoalAmount(id: string, amount: number): Promise<ActionR
 
   if (error) return { error: error.message }
   revalidatePath('/goals')
+  return { success: true }
+}
+
+/* ---------- Conferir saldo (reconciliação individual) ---------- */
+
+// Soma `delta` ao ajuste manual do PRÓPRIO usuário (nunca do parceiro —
+// RLS em account_members só deixa editar a própria linha e só essa
+// coluna, ver balance_adjustment_migration.sql). Usado quando a pessoa
+// confere o saldo real da conta e escolhe "corrigir o saldo base" em vez
+// de lançar uma transação de ajuste.
+export async function adjustUserBalance(delta: number): Promise<ActionResult> {
+  const { user, account } = await getSessionContext()
+  if (!user || !account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  if (!Number.isFinite(delta) || delta === 0) {
+    return { error: 'Nenhuma diferença para ajustar.' }
+  }
+  const supabase = await createClient()
+
+  const { data: current, error: fetchError } = await supabase
+    .from('account_members')
+    .select('balance_adjustment')
+    .eq('account_id', account.id)
+    .eq('user_id', user.id)
+    .single<{ balance_adjustment: number }>()
+
+  if (fetchError || !current) return { error: 'Não foi possível carregar seu ajuste atual.' }
+
+  const { error } = await supabase
+    .from('account_members')
+    .update({ balance_adjustment: Number(current.balance_adjustment) + delta })
+    .eq('account_id', account.id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard')
+  revalidatePath('/transactions/new')
+  return { success: true }
+}
+
+// Cria uma transação de ajuste (receita ou despesa) em nome do usuário
+// logado, pra deixar o saldo individual batendo com a conta real sem
+// mexer no ajuste manual nem nos lançamentos do parceiro.
+export async function createBalanceAdjustmentTransaction(
+  amount: number,
+  type: 'income' | 'expense',
+): Promise<ActionResult> {
+  const { user, account } = await getSessionContext()
+  if (!user || !account) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: 'Nenhuma diferença para ajustar.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('transactions').insert({
+    account_id: account.id,
+    user_id: user.id,
+    type,
+    amount,
+    description: 'Ajuste de saldo (Conferir saldo)',
+    date: todayISO(),
+  })
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard')
+  revalidatePath('/transactions')
+  revalidatePath('/transactions/new')
   return { success: true }
 }
 

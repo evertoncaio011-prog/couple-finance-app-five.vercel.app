@@ -4,6 +4,7 @@ import { TransactionRow } from '@/components/transaction-row'
 import { TransactionFilters } from '@/components/transaction-filters'
 import { deleteTransaction } from '@/app/actions'
 import { monthKey, monthLabel } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 import type { TransactionWithMeta } from '@/lib/types'
 
 export default async function TransactionsPage({
@@ -41,11 +42,15 @@ export default async function TransactionsPage({
     groups.get(key)!.push(t)
   }
 
+  const totalExpenses = filtered.reduce((acc, t) => (t.type === 'expense' ? acc + Number(t.amount) : acc), 0)
+
   return (
     <div className="flex flex-col gap-4 pb-10">
       <PageHeader
         title="Transações"
-        subtitle={`${filtered.length} de ${txs.length} lançamentos`}
+        subtitle={`${filtered.length} de ${txs.length} lançamentos · Gastos: ${formatCurrency(
+          totalExpenses,
+        )}`}
       />
 
       <div className="px-5 lg:mx-auto lg:w-full lg:max-w-2xl lg:px-8">

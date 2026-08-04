@@ -24,6 +24,7 @@ import {
   expenseByCategory,
   monthlySeries,
   openInvoicesByCard,
+  sumGoalsExternal,
   sumGoalsReserved,
 } from '@/lib/summary'
 import { currentMonthKey, formatCurrency, monthKey } from '@/lib/format'
@@ -48,6 +49,12 @@ export default async function DashboardPage() {
   // que já está guardado dentro das metas. Nunca mostra negativo aqui
   // (se as metas passarem do saldo total, o "disponível" só zera).
   const availableBalance = Math.max(0, totalBalance - goalsReserved)
+  // Dinheiro guardado nas metas que nunca passou pela conta (contribuições
+  // marcadas como "não descontar do saldo"). Não está em totalBalance
+  // porque não veio de nenhuma transação, então soma à parte para o
+  // "Saldo total (com metas)" mostrar o total real guardado pelo casal.
+  const goalsExternal = sumGoalsExternal(goals)
+  const totalBalanceWithGoals = totalBalance + goalsExternal
   // Progresso agregado de todas as metas juntas: quanto do valor-alvo
   // total já foi guardado. Só usa dados que já buscamos (goals).
   const goalsTarget = goals.reduce((acc, g) => acc + Number(g.target_amount), 0)
@@ -104,7 +111,7 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-6 lg:col-span-3">
           <BalanceCard
             accountName={account.name}
-            totalBalance={totalBalance}
+            totalBalance={totalBalanceWithGoals}
             availableBalance={availableBalance}
             goalsReserved={goalsReserved}
             goalsProgressPercent={goalsProgressPercent}

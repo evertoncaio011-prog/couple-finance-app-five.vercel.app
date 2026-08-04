@@ -233,3 +233,15 @@ export function sumGoalsReserved(goals: Goal[]): number {
     0,
   )
 }
+
+/**
+ * Soma do que foi guardado nas metas sem descontar do saldo (dinheiro que
+ * nunca passou pela conta compartilhada — ver `affectsBalance` em
+ * addGoalAmount/setGoalContribution). Esse valor não está refletido em
+ * computeAccountBalance (não veio de nenhuma transação), então precisa ser
+ * somado à parte para o "Saldo total (com metas)" refletir o total real
+ * guardado pelo casal, dentro e fora da conta.
+ */
+export function sumGoalsExternal(goals: Goal[]): number {
+  return goals.reduce((acc, g) => acc + Math.max(0, Number(g.excluded_amount ?? 0)), 0)
+}

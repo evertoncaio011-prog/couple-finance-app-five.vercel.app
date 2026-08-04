@@ -17,7 +17,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { GoalProgressBar } from '@/components/goal-progress-bar'
-import { addGoalAmount, deleteGoal, updateGoal } from '@/app/actions'
+import { addGoalAmount, deleteGoal, updateGoal, setGoalContribution } from '@/app/actions'
 import { formatCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Goal } from '@/lib/types'
@@ -45,6 +45,9 @@ export function GoalSheet({
   const [affectsBalance, setAffectsBalance] = useState(true)
   const [adding, startAdding] = useTransition()
   const [deleting, startDelete] = useTransition()
+  const [editingContribution, setEditingContribution] = useState(false)
+  const [contributionValue, setContributionValue] = useState('')
+  const [contributionAffectsBalance, setContributionAffectsBalance] = useState(true)
   const [editState, editAction] = useActionState(updateGoal.bind(null, goal.id), {})
 
   // Sempre volta pra visão de detalhes ao reabrir, mesmo que tenha sido
@@ -88,6 +91,24 @@ export function GoalSheet({
       )
       setAddValue('')
       setAffectsBalance(true)
+    })
+  }
+
+  async function handleSetContribution() {
+    const parsed = Number(contributionValue.replace(',', '.'))
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast.error('Informe um valor válido (>= 0).')
+      return
+    }
+    setEditingContribution(false)
+    startAdding(async () => {
+      const res = await setGoalContribution(goal.id, parsed, contributionAffectsBalance)
+      if (res?.error) {
+        toast.error(res.error)
+        return
+      }
+      toast.success('Contribuição atualizada!')
+      setContributionValue('')
     })
   }
 
@@ -252,6 +273,58 @@ export function GoalSheet({
                     </span>
                   </button>
                 </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Minha contribuição</Label>
+                <div className="flex items-center gap-2">
+                  <Button type="button" onClick={() => setEditingContribution(true)}>
+                    Editar minha contribuição
+                  </Button>
+                </div>
+                {editingContribution && (
+                  <div className="mt-2 space-y-2">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      value={contributionValue}
+                      onChange={(e) => setContributionValue(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setContributionAffectsBalance(true)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-2xl border p-2',
+                          contributionAffectsBalance ? 'border-primary bg-primary/5' : 'border-border',
+                        )}
+                      >
+                        Descontar do saldo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContributionAffectsBalance(false)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-2xl border p-2',
+                          !contributionAffectsBalance ? 'border-primary bg-primary/5' : 'border-border',
+                        )}
+                      >
+                        Não descontar do saldo
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" onClick={handleSetContribution}>
+                        Salvar contribuição
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => setEditingContribution(false)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">

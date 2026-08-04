@@ -511,6 +511,77 @@ export async function addGoalAmount(
   return { success: true }
 }
 
+/** Substitui a contribuição do usuário logado pela `newAmount` (valor total).
+ * Calcula o delta e atualiza current_amount e excluded_amount.
+ * `affectsBalance` indica se a contribuição deve afetar o saldo disponível.
+ */
+export async function setGoalContribution(
+  id: string,
+  newAmount: number,
+  affectsBalance = true,
+): Promise<ActionResult> {
+  const { account, user } = await getSessionContext()
+  if (!account || !user) return { error: 'Nenhum orçamento compartilhado encontrado.' }
+  if (!Number.isFinite(newAmount) || newAmount < 0) return { error: 'Informe um valor válido (>= 0).' }
+
+  const supabase = await createClient()
+
+  // Busca meta com fallback para caso excluded_amount não exista
+  let goal: any = null
+  try {
+    const { data, error } = await supabase
+      .from('goals')
+      .select('current_amount, contributions, excluded_amount')
+      .eq('id', id)
+      .eq('account_id', account.id)
+      .single()
+    if (error) throw error
+    goal = data
+  } catch (err: any) {
+    const msg = String(err?.message ?? '').toLowerCase()
+    if (msg.includes('excluded_amount') || msg.includes('column') || msg.includes('does not exist')) {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('current_amount, contributions')
+        .eq('id', id)
+        .eq('account_id', account.id)
+        .single()
+      if (error || !data) return { error: 'Meta não encontrada.' }
+      goal = { ...(data as any), excluded_amount: 0 }
+    } else {
+      return { error: 'Meta não encontrada.' }
+    }
+  }
+
+  if (!goal) return { error: 'Meta não encontrada.' }
+
+  const prev = Number(goal.contributions?.[user.id] ?? 0)
+  const delta = Number(newAmount) - prev
+
+  const newCurrent = Number(goal.current_amount) + delta
+  let newExcluded = Number(goal.excluded_amount ?? 0)
+  if (!affectsBalance) {
+    newExcluded = newExcluded + delta
+  }
+  newExcluded = Math.max(0, Number(newExcluded))
+
+  const nextContributions = {
+    ...(goal.contributions ?? {}),
+    [user.id]: Number(newAmount),
+  }
+
+  const { error } = await supabase
+    .from('goals')
+    .update({ current_amount: newCurrent, excluded_amount: newExcluded, contributions: nextContributions })
+    .eq('id', id)
+    .eq('account_id', account.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/goals')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 /* ---------- Conferir saldo (reconciliação individual) ---------- */
 
 // Soma `delta` ao ajuste manual do PRÓPRIO usuário (nunca do parceiro —

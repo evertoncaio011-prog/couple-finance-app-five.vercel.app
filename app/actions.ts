@@ -445,19 +445,44 @@ export async function addGoalAmount(
   }
   const supabase = await createClient()
 
-  const { data: goal, error: fetchError } = await supabase
-    .from('goals')
-    .select('current_amount, target_amount, contributions, excluded_amount')
-    .eq('id', id)
-    .eq('account_id', account.id)
-    .single<{
-      current_amount: number
-      target_amount: number
-      contributions: Record<string, number> | null
-      excluded_amount: number | null
-    }>()
+  // Tenta buscar a meta incluindo `excluded_amount`. Se a coluna não
+  // existir no banco (migração não aplicada), faz uma segunda tentativa
+  // sem ela e assume `excluded_amount = 0` para compatibilidade.
+  let goal: {
+    current_amount: number
+    target_amount: number
+    contributions: Record<string, number> | null
+    excluded_amount?: number | null
+  } | null = null
 
-  if (fetchError || !goal) return { error: 'Meta não encontrada.' }
+  try {
+    const { data, error } = await supabase
+      .from('goals')
+      .select('current_amount, target_amount, contributions, excluded_amount')
+      .eq('id', id)
+      .eq('account_id', account.id)
+      .single()
+
+    if (error) throw error
+    goal = data as typeof goal
+  } catch (err: any) {
+    const msg = String(err?.message ?? '').toLowerCase()
+    if (msg.includes('excluded_amount') || msg.includes('column') || msg.includes('does not exist')) {
+      // coluna ausente: tenta sem excluded_amount
+      const { data, error } = await supabase
+        .from('goals')
+        .select('current_amount, target_amount, contributions')
+        .eq('id', id)
+        .eq('account_id', account.id)
+        .single()
+      if (error || !data) return { error: 'Meta não encontrada.' }
+      goal = { ...(data as any), excluded_amount: 0 }
+    } else {
+      return { error: 'Meta não encontrada.' }
+    }
+  }
+
+  if (!goal) return { error: 'Meta não encontrada.' }
 
   const newAmount = Number(goal.current_amount) + amount
   const newExcludedAmount = affectsBalance

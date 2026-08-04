@@ -1,5 +1,7 @@
 import 'server-only'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { redirect } from 'next/navigation'
+import { getSessionContext } from './data'
 
 /**
  * Cliente Supabase com a service_role key — contorna TODAS as políticas de
@@ -30,4 +32,27 @@ export function createAdminClient() {
   return createSupabaseClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+}
+
+/** Lista de e-mails admin (separados por vírgula) fornecida via env `ADMIN_EMAILS` */
+export function getAdminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const list = getAdminEmails()
+  return list.includes(email)
+}
+
+/** Redireciona para /dashboard se a pessoa não for admin. */
+export async function requireAdmin() {
+  const ctx = await getSessionContext()
+  const user = ctx.user
+  if (!user) redirect('/dashboard')
+  if (!isAdminEmail(user.email)) redirect('/dashboard')
+  return { user }
 }

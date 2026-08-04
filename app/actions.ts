@@ -424,7 +424,20 @@ export async function deleteGoal(id: string): Promise<ActionResult> {
 // Soma `amount` ao valor já guardado na meta. Marca completed_at
 // automaticamente quando o total atinge (ou passa) o valor alvo, e limpa de
 // volta para null se, por algum motivo, o valor cair abaixo dele de novo.
-export async function addGoalAmount(id: string, amount: number): Promise<ActionResult> {
+//
+// `affectsBalance` (padrão true) decide se esse valor conta como
+// "reservado" para efeito do saldo disponível (ver
+// sumGoalsReserved/computeUserGoalReservation em lib/summary.ts). Quando
+// false, o valor soma normalmente no progresso da meta (current_amount),
+// mas também é somado em excluded_amount, que é descontado na hora de
+// calcular quanto está reservado — ou seja, não desconta do saldo
+// disponível. Útil para dinheiro que nunca passou pela conta compartilhada
+// (ex.: já estava guardado em outro lugar).
+export async function addGoalAmount(
+  id: string,
+  amount: number,
+  affectsBalance = true,
+): Promise<ActionResult> {
   const { account, user } = await getSessionContext()
   if (!account || !user) return { error: 'Nenhum orçamento compartilhado encontrado.' }
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -434,18 +447,22 @@ export async function addGoalAmount(id: string, amount: number): Promise<ActionR
 
   const { data: goal, error: fetchError } = await supabase
     .from('goals')
-    .select('current_amount, target_amount, contributions')
+    .select('current_amount, target_amount, contributions, excluded_amount')
     .eq('id', id)
     .eq('account_id', account.id)
     .single<{
       current_amount: number
       target_amount: number
       contributions: Record<string, number> | null
+      excluded_amount: number | null
     }>()
 
   if (fetchError || !goal) return { error: 'Meta não encontrada.' }
 
   const newAmount = Number(goal.current_amount) + amount
+  const newExcludedAmount = affectsBalance
+    ? Number(goal.excluded_amount ?? 0)
+    : Number(goal.excluded_amount ?? 0) + amount
   const isComplete = newAmount >= Number(goal.target_amount)
   const nextContributions = {
     ...(goal.contributions ?? {}),
@@ -456,6 +473,7 @@ export async function addGoalAmount(id: string, amount: number): Promise<ActionR
     .from('goals')
     .update({
       current_amount: newAmount,
+      excluded_amount: newExcludedAmount,
       completed_at: isComplete ? new Date().toISOString() : null,
       contributions: nextContributions,
     })
@@ -464,6 +482,7 @@ export async function addGoalAmount(id: string, amount: number): Promise<ActionR
 
   if (error) return { error: error.message }
   revalidatePath('/goals')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 

@@ -126,6 +126,10 @@ export interface Goal {
   description: string | null
   target_amount: number
   current_amount: number
+  /** Parte do current_amount que foi adicionada com "não descontar do
+   * saldo" marcado — não conta como reservado ao calcular o saldo
+   * disponível, mas soma normalmente no progresso da meta. */
+  excluded_amount?: number
   color: string
   /** Mapeamento de contribuições por usuário para a meta, em formato { [userId]: amount }. */
   contributions?: Record<string, number> | null

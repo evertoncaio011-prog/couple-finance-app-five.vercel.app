@@ -24,6 +24,13 @@ create table if not exists public.goals (
 alter table public.goals add column if not exists description text;
 alter table public.goals add column if not exists contributions jsonb not null default '{}'::jsonb;
 
+-- Quanto do current_amount foi adicionado com "não descontar do saldo"
+-- marcado (ver addGoalAmount em app/actions.ts). current_amount continua
+-- representando o progresso total da meta; excluded_amount é só a parte
+-- dele que não deve contar como "reservado" ao calcular o saldo
+-- disponível (ver sumGoalsReserved/computeUserGoalReservation).
+alter table public.goals add column if not exists excluded_amount numeric(14,2) not null default 0;
+
 create index if not exists idx_goals_account on public.goals (account_id);
 
 alter table public.goals enable row level security;

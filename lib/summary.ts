@@ -72,7 +72,7 @@ function normalizeGoalContributions(contributions?: Record<string, number> | nul
 
 export function computeUserGoalReservation(goals: Goal[], userId: string): number {
   return goals.reduce((acc, goal) => {
-    const reserved = Number(goal.current_amount ?? 0)
+    const reserved = Number(goal.current_amount ?? 0) - Number(goal.excluded_amount ?? 0)
     if (reserved <= 0) return acc
 
     const contributions = normalizeGoalContributions(goal.contributions)
@@ -228,5 +228,8 @@ export function openInvoicesByCard(
  * contar como "saldo disponível" pra gastar.
  */
 export function sumGoalsReserved(goals: Goal[]): number {
-  return goals.reduce((acc, g) => acc + Number(g.current_amount), 0)
+  return goals.reduce(
+    (acc, g) => acc + Math.max(0, Number(g.current_amount) - Number(g.excluded_amount ?? 0)),
+    0,
+  )
 }

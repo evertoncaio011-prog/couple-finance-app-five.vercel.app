@@ -5,6 +5,7 @@ import { TransactionFilters } from '@/components/transaction-filters'
 import { deleteTransaction } from '@/app/actions'
 import { monthKey, monthLabel } from '@/lib/format'
 import { formatCurrency } from '@/lib/format'
+import { computeTotals } from '@/lib/summary'
 import type { TransactionWithMeta } from '@/lib/types'
 
 export default async function TransactionsPage({
@@ -42,7 +43,8 @@ export default async function TransactionsPage({
     groups.get(key)!.push(t)
   }
 
-  const totalExpenses = filtered.reduce((acc, t) => (t.type === 'expense' ? acc + Number(t.amount) : acc), 0)
+  const totals = computeTotals(filtered)
+  const totalExpenses = totals.expense
 
   return (
     <div className="flex flex-col gap-4 pb-10">

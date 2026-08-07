@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import { requireAdmin } from '@/lib/admin'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Redireciona pra /dashboard se a pessoa não estiver logada ou não
   // estiver na lista de ADMIN_EMAILS — ver lib/admin.ts.

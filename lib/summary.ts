@@ -11,10 +11,17 @@ export function computeTotals(txs: TransactionWithMeta[]): Totals {
   let income = 0
   let expense = 0
   for (const t of txs) {
-    // Pagamentos de fatura (is_invoice_payment) ficam de fora daqui: a
-    // compra original no cartão já foi contada como gasto no mês em que
-    // ela aconteceu, então contar o pagamento de novo duplicaria o valor.
-    if (t.is_invoice_payment) continue
+    // Ignora lançamentos marcados para não afetar o saldo (hoje só
+    // acontece com pagamento de fatura via "não descontar do saldo").
+    if (t.affects_balance === false) continue
+    // Compras no cartão de crédito (card_id preenchido) NÃO contam aqui:
+    // o dinheiro só sai de fato da conta quando a fatura é paga. Nesse
+    // momento a própria transação de pagamento (is_invoice_payment, sem
+    // card_id) conta como saída, no mês em que o pagamento aconteceu —
+    // e não no mês em que a compra foi feita. Isso evita tanto duplicar
+    // o valor quanto "sumir" com ele quando compra e pagamento caem em
+    // meses diferentes.
+    if (t.card_id && !t.is_invoice_payment) continue
     // 'neutral' ("Outros") é organizacional, mas por pedido do usuário ele
     // soma junto com as despesas do mês (não influencia o saldo real,
     // que é calculado à parte a partir das transações de income/expense).
@@ -163,7 +170,10 @@ export function monthlySeries(
   }
   const index = new Map(points.map((p) => [p.key, p]))
   for (const t of txs) {
-    if (t.is_invoice_payment) continue
+    // Mesma regra de computeTotals: compra no cartão não conta como saída
+    // (só o pagamento da fatura conta, no mês em que foi de fato pago).
+    if (t.affects_balance === false) continue
+    if (t.card_id && !t.is_invoice_payment) continue
     const p = index.get(monthKey(t.date))
     if (!p) continue
     if (t.type === 'income') p.income += Number(t.amount)

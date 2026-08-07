@@ -15,6 +15,7 @@ import { BalanceCard } from '@/components/balance-card'
 import { DashboardShortcuts } from '@/components/dashboard-shortcuts'
 import { BalanceCheckButton } from '@/components/balance-check-sheet'
 import { InvoicesCard } from '@/components/invoices-card'
+import { GoalsCard } from '@/components/goals-card'
 import { IncomeExpenseChart, CategoryDonut } from '@/components/spending-charts'
 import { TransactionRow } from '@/components/transaction-row'
 import {
@@ -125,6 +126,10 @@ export default async function DashboardPage() {
           {cards.length > 0 && (
             <InvoicesCard total={totalOpenInvoices} invoices={openInvoices} />
           )}
+
+          {/* Sem filtro de mês: mostra enquanto tiver dinheiro guardado
+              na meta, não importa quando a contribuição foi feita. */}
+          <GoalsCard goals={goals} />
 
           <section className="rounded-3xl border border-border bg-card p-5">
             <h2 className="flex items-center gap-1.5 font-heading text-base font-semibold">

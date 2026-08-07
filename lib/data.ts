@@ -173,7 +173,16 @@ export async function getGoals(accountId: string): Promise<Goal[]> {
     console.error('Falha ao carregar metas:', error.message)
     return []
   }
-  return (data as Goal[]) ?? []
+
+  return (
+    (data as Goal[])
+      ?.map((goal) => ({
+        ...goal,
+        current_amount: Number(goal.current_amount ?? 0),
+        target_amount: Number(goal.target_amount ?? 0),
+        excluded_amount: Number(goal.excluded_amount ?? 0),
+      })) ?? []
+  )
 }
 
 export async function getSubscription(accountId: string): Promise<Subscription | null> {

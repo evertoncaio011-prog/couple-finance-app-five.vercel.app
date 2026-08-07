@@ -359,6 +359,8 @@ export async function addGoal(_prev: ActionResult, formData: FormData): Promise<
     name,
     description: description || null,
     target_amount: targetAmount,
+    current_amount: 0,
+    excluded_amount: 0,
     color,
     contributions: {},
   })

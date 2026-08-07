@@ -57,10 +57,12 @@ export default async function DashboardPage() {
   const goalsExternal = sumGoalsExternal(goals)
   const totalBalanceWithGoals = totalBalance + goalsExternal
   // Progresso agregado de todas as metas juntas: quanto do valor-alvo
-  // total já foi guardado. Só usa dados que já buscamos (goals).
+  // total já foi guardado, incluindo contribuições que não passaram pelo
+  // saldo compartilhado.
   const goalsTarget = goals.reduce((acc, g) => acc + Number(g.target_amount), 0)
+  const goalsSaved = goals.reduce((acc, g) => acc + Number(g.current_amount ?? 0), 0)
   const goalsProgressPercent =
-    goalsTarget > 0 ? Math.min(100, (goalsReserved / goalsTarget) * 100) : 0
+    goalsTarget > 0 ? Math.min(100, (goalsSaved / goalsTarget) * 100) : 0
   const openInvoices = openInvoicesByCard(cards, transactions, invoicePayments)
   const totalOpenInvoices = openInvoices.reduce((acc, inv) => acc + inv.total, 0)
 

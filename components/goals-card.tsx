@@ -33,8 +33,8 @@ export function GoalsCard({ goals }: { goals: Goal[] }) {
 
       <ul className="flex flex-col gap-3">
         {withMoney.map((goal) => {
-          const current = Number(goal.current_amount)
-          const target = Number(goal.target_amount)
+          const current = Number(goal.current_amount ?? 0)
+          const target = Number(goal.target_amount ?? 0)
           const percent = target > 0 ? Math.min(100, (current / target) * 100) : 0
           const isComplete = Boolean(goal.completed_at)
 

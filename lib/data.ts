@@ -83,6 +83,43 @@ export async function getCategories(accountId: string): Promise<Category[]> {
   return (data as Category[]) ?? []
 }
 
+export async function getOrCreateOutrosCategory(accountId: string): Promise<Category | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('account_id', accountId)
+    .eq('name', 'Outros')
+    .eq('type', 'both')
+    .maybeSingle()
+
+  if (error) {
+    console.error('Falha ao buscar categoria Outros:', error.message)
+    return null
+  }
+
+  if (data) return data as Category
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('categories')
+    .insert({
+      account_id: accountId,
+      name: 'Outros',
+      type: 'both',
+      color: '#64748b',
+      is_default: true,
+    })
+    .select('*')
+    .single()
+
+  if (insertError) {
+    console.error('Falha ao criar categoria Outros:', insertError.message)
+    return null
+  }
+
+  return inserted as Category
+}
+
 export async function getTransactions(
   accountId: string,
   limit?: number,

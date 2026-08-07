@@ -4,7 +4,7 @@ import { createNotification } from '@/lib/notifications'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getSessionContext } from '@/lib/data'
+import { getSessionContext, getOrCreateOutrosCategory } from '@/lib/data'
 import { todayISO } from '@/lib/format'
 
 type ActionResult = { error?: string; success?: boolean; data?: unknown }
@@ -106,10 +106,24 @@ export async function addTransaction(_prev: ActionResult, formData: FormData): P
     return { error: 'Escolha o cartão usado na compra.' }
   }
 
+  let categoryId = String(formData.get('category_id') ?? '') || null
+  if (type === 'neutral' && !categoryId) {
+    const outrosCategory = await getOrCreateOutrosCategory(account.id)
+    if (!outrosCategory) {
+      return { error: 'Não foi possível atribuir a categoria Outros.' }
+    }
+    categoryId = outrosCategory.id
+  }
+
   const { error } = await supabase.from('transactions').insert({
-    account_id: account.id, user_id: user.id, type, amount,
-    category_id: String(formData.get('category_id') ?? '') || null,
-    description: description || null, note: String(formData.get('note') ?? '').trim() || null, date,
+    account_id: account.id,
+    user_id: user.id,
+    type,
+    amount,
+    category_id: categoryId,
+    description: description || null,
+    note: String(formData.get('note') ?? '').trim() || null,
+    date,
     card_id: paymentMethod === 'credit' && type !== 'income' ? cardId : null,
   })
 
@@ -167,9 +181,21 @@ export async function updateTransaction(id: string, _prev: ActionResult, formDat
     return { error: 'Escolha o cartão usado na compra.' }
   }
 
+  let categoryId = String(formData.get('category_id') ?? '') || null
+  if (!isLocked && type === 'neutral' && !categoryId) {
+    const outrosCategory = await getOrCreateOutrosCategory(account.id)
+    if (!outrosCategory) {
+      return { error: 'Não foi possível atribuir a categoria Outros.' }
+    }
+    categoryId = outrosCategory.id
+  }
+
   const { error } = await supabase.from('transactions').update({
-    type, amount, description, date: String(formData.get('date') ?? ''),
-    category_id: String(formData.get('category_id') ?? '') || null,
+    type,
+    amount,
+    description,
+    date: String(formData.get('date') ?? ''),
+    category_id: isLocked ? existing.category_id : categoryId,
     note: String(formData.get('note') ?? '').trim() || null,
     card_id: isLocked ? existing.card_id : (paymentMethod === 'credit' && type !== 'income' ? cardId : null),
   }).eq('id', id).eq('account_id', account.id)

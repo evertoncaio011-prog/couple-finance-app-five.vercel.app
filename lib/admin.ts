@@ -1,33 +1,75 @@
+@'
 import 'server-only'
+
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 
 /**
- * Cliente Supabase com a service_role key — contorna TODAS as políticas de
- * RLS. NUNCA importe isso em um componente cliente ('use client') ou
- * exponha o resultado de uma chamada feita com ele diretamente para o
- * navegador sem antes filtrar os dados.
+ * Cliente Supabase com a service_role key.
  *
- * Uso permitido apenas em:
- * 1. Rotas de servidor que verificam autorização antes de usar (ex.: o
- *    webhook do Stripe, que valida a assinatura do evento).
- * 2. Páginas/ações do painel admin, que já checam requireAdmin() antes.
- *
- * O pacote "server-only" faz o build falhar se este arquivo acabar sendo
- * importado, direta ou indiretamente, por código que roda no navegador.
+ * NUNCA importe em componentes cliente ('use client').
+ * Uso somente em código server-side.
  */
 export function createAdminClient() {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
     'https://your-project-ref.supabase.co'
+
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
   if (!serviceRoleKey) {
     throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY não configurada. Pegue a chave "service_role" em Supabase > Project Settings > API e adicione ao seu .env.local (nunca ao NEXT_PUBLIC_*, e nunca commitada).',
+      'SUPABASE_SERVICE_ROLE_KEY não configurada. Adicione a chave service_role do Supabase no .env.local.',
     )
   }
 
   return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
   })
 }
+
+
+/**
+ * Verifica se um email possui permissão de administrador.
+ */
+export function isAdminEmail(email?: string | null) {
+  if (!email) return false
+
+  const adminEmails = [
+    process.env.ADMIN_EMAIL,
+  ].filter(Boolean)
+
+  return adminEmails.includes(email)
+}
+
+
+/**
+ * Exige usuário administrador autenticado.
+ *
+ * Usado em páginas e actions protegidas.
+ */
+export async function requireAdmin() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
+
+  if (error || !user) {
+    throw new Error('Usuário não autenticado')
+  }
+
+  if (!isAdminEmail(user.email)) {
+    throw new Error('Acesso negado: usuário sem permissão de administrador')
+  }
+
+  return user
+}
+'@ | Set-Content -Path "lib\admin.ts" -Encoding utf8
+
+Write-Host "Arquivo lib\admin.ts sobrescrito. Conteudo atual:"
+Get-Content "lib\admin.ts"

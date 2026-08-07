@@ -302,7 +302,7 @@ export function TransactionForm({
           className={selectClass}
         >
           <option value="" disabled={type !== 'neutral'}>
-            {type === 'neutral' ? 'Sem categoria' : 'Escolha uma categoria'}
+            {type === 'neutral' ? 'Outros' : 'Escolha uma categoria'}
           </option>
           {availableCategories.map((c) => (
             <option key={c.id} value={c.id}>

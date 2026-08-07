@@ -58,7 +58,7 @@ function InvoiceRow({ invoice }: { invoice: InvoiceWithTransactions }) {
                     {tx.description || tx.category?.name || 'Compra'}
                   </p>
                   <p className="truncate text-muted-foreground">
-                    {tx.category?.name ?? 'Sem categoria'} · {formatDateShort(tx.date)}
+                    {tx.category?.name ?? 'Outros'} · {formatDateShort(tx.date)}
                   </p>
                 </div>
                 <p className="shrink-0 font-semibold tabular-nums">

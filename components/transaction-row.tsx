@@ -40,7 +40,7 @@ export function TransactionRow({
               {tx.description || tx.category?.name || (isIncome ? 'Receita' : isNeutral ? 'Outros' : 'Despesa')}
             </p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {tx.category?.name ?? 'Sem categoria'}
+              {tx.category?.name ?? 'Outros'}
               {tx.card && ` · Cartão ${tx.card.name}`}
               {tx.author?.display_name && ` · ${tx.author.display_name}`}
               {tx.affects_balance === false && ' · Não afeta o saldo'}

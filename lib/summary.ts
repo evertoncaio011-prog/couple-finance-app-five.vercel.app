@@ -135,14 +135,14 @@ export function expenseByCategory(
     if (t.is_invoice_payment) continue
     // Despesas e "Outros" (neutral) contam juntos na visão por categoria.
     if (t.type !== 'expense' && t.type !== 'neutral') continue
-    const id = t.category?.id ?? 'uncategorized'
+    const id = t.category?.id ?? 'outros'
     const existing = map.get(id)
     if (existing) {
       existing.value += Number(t.amount)
     } else {
       map.set(id, {
         id,
-        name: t.category?.name ?? 'Sem categoria',
+        name: t.category?.name ?? 'Outros',
         color: t.category?.color ?? '#94a3b8',
         value: Number(t.amount),
       })

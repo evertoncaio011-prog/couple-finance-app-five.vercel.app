@@ -120,7 +120,7 @@ export function TransactionSheet({
                     <div>
                       <p className="text-xs text-muted-foreground">Categoria</p>
                       <p className="font-medium">
-                        {transaction.category?.name ?? 'Sem categoria'}
+                        {transaction.category?.name ?? 'Outros'}
                       </p>
                     </div>
                   </div>
